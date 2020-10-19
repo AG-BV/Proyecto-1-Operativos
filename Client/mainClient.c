@@ -32,6 +32,7 @@ int main(int argc , char *argv[])
 		return 1;
 	}
 	
+	
 	puts("Connected\n");
 	
 	//keep communicating with server
