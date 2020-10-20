@@ -27,10 +27,6 @@ void *foo(void *p)
     pthread_exit(&my_data);
 }
 
-
-
-
-
 /////////////////////////////////////////////////////
 // LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
 /////////////////////////////////////////////////////
@@ -84,12 +80,8 @@ int *readFile(char *pData)
     return save;
 }
 
-
-
-
-
 /////////////////////////////////////////////////////
-// LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
+//                 CREA UN JSON                    //
 /////////////////////////////////////////////////////
 json_object *makeJson(int pData1, int pData2)
 {
@@ -105,8 +97,6 @@ json_object *makeJson(int pData1, int pData2)
     json_object_object_add(jobj, "priority", jint2);
     return jobj;
 }
-
-
 
 /////////////////////////////////////////////////////
 //                     CLIENTE                     //
@@ -189,10 +179,9 @@ void client()
             switch (opcion)
             {
 
-                ////////////////////////////////
-                //    MENU DE MODO MANUAL     //
-                ////////////////////////////////
-
+            ////////////////////////////////
+            //    MENU DE MODO MANUAL     //
+            ////////////////////////////////
             case 1:
                 printf(separador, sizeof(separador));
                 printf(tituloMM, sizeof(tituloMM));
@@ -261,7 +250,7 @@ void client()
                 ///////////////////////////////////////
                 // CREA EL JSON Y LO ENVIA AL SERVER //
                 ///////////////////////////////////////
-                
+
                 json_object *jobj = makeJson(saveData[0], saveData[1]);
                 char temp_buff[2000];
 
@@ -278,7 +267,6 @@ void client()
                     perror("demodemoserverAddrserverAddr");
                     return EXIT_FAILURE;
                 }
-
                 break;
 
             ////////////////////////////////
