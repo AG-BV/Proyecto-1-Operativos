@@ -24,7 +24,7 @@ void *foo(void *p)
     printf("EL BURST DEL PROCESO ES DE : %d\n", my_data[0]);
     printf("LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[1]);
     // Return reference to global variable:
-    pthread_exit(&my_data);
+    pthread_exit(*my_data);
 }
 
 /////////////////////////////////////////////////////
@@ -218,11 +218,11 @@ void client()
                 ////////////////////////////////////////
                 //     RESIVIENDO LOS DATOS DEL HILO  //
                 ///////////////////////////////////////
-                // int *ptr;
-                // pthread_join(id, (void **)&ptr);
-                // printf("Value recevied by parent from child: ");
-                // int *answer_beeing_an_int_arr = ptr;
-                // printf(" %d", ((int*)&ptr)[0]);
+                int *ptr;
+                pthread_join(id, (void **)&ptr);
+                printf("Value recevied by parent from child: ");
+                int *answer_beeing_an_int_arr = ptr;
+                printf(" %d", ((int*)&ptr)[0]);
                 ///////////////////////////////////////////
 
                 ////////////////////////////////////////
