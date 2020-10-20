@@ -1,15 +1,33 @@
 /*
 	C ECHO client example using sockets
 */
+#include <pthread.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <stdio.h>       //printf
 #include <string.h>      //strlen
 #include <sys/socket.h>  //socket
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
-#include <unistd.h>
-#include <stdbool.h>
 #define MAXCHAR 500
 
+/////////////////////////////////////////////////////
+//                     THREAD                      //
+/////////////////////////////////////////////////////
+
+void *foo(void *p)
+{
+
+    int *my_data = p; /* data received by thread */
+    int k = my_data[0];
+    printf("\n");
+    printf("SOY EL HILO LOS DATOS DEL PROCESO SON : \n");
+    printf("EL BURST DEL PROCESO ES DE : %d\n", k);
+    printf("LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[1]);
+    // Return reference to global variable:
+    pthread_exit(&my_data);
+}
 
 /////////////////////////////////////////////////////
 // LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
@@ -19,7 +37,7 @@ int *readFile(char *pData)
 {
     FILE *fp;
     char str[MAXCHAR];
-    int save[4];
+    static int save[4];
     int i = 0;
     bool flagT = false;
 
@@ -65,13 +83,28 @@ int *readFile(char *pData)
     return save;
 }
 
+/////////////////////////////////////////////////////
+// LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
+/////////////////////////////////////////////////////
 
-
-
-
+json_object *makeJson(int pData1, int pData2)
+{
+    /*Creating a json object*/
+    json_object *jobj = json_object_new_object();
+    /*Creating a json string*/
+    json_object *jstring = json_object_new_string("PROCESO");
+    /*Creating a json integer*/
+    json_object *jint1 = json_object_new_int(pData1);
+    json_object *jint2 = json_object_new_int(pData2);
+    json_object_object_add(jobj, "name", jstring);
+    json_object_object_add(jobj, "burst", jint1);
+    json_object_object_add(jobj, "priority", jint2);
+    return jobj;
+}
 
 void client()
 {
+    pthread_t tid1;
     int sock;
     int flag = 0;
     int flagComunication = 0;
@@ -146,11 +179,11 @@ void client()
             ////////////////////////////////
             switch (opcion)
             {
-            
-            ////////////////////////////////
-            //    MENU DE MODO MANUAL     //
-            ////////////////////////////////
-            
+
+                ////////////////////////////////
+                //    MENU DE MODO MANUAL     //
+                ////////////////////////////////
+
             case 1:
                 printf(separador, sizeof(separador));
                 printf(tituloMM, sizeof(tituloMM));
@@ -159,7 +192,7 @@ void client()
                 printf(separador, sizeof(separador));
                 scanf("%d", &n);
                 break;
-            
+
             //////////////////////////////////
             //    MENU DE MODO AUTOMATICO  //
             ////////////////////////////////
@@ -171,11 +204,74 @@ void client()
                 printf(separador, sizeof(separador));
                 printf("\n");
                 scanf("%s", &name);
-                //OBTIENE LOS DATOS PARA CARGAR EN EL HILO
-                readFile(name);
+
+                ///////////////////////////////////////////
+                //OBTIENE LOS DATOS PARA CARGAR EN EL HILO//
+                ///////////////////////////////////////////
+                int *saveData = readFile(name); // ocupa un try catch
+
+                ////////////////////////////////////////
+                //     ENVIADO LOS DATOS AL HILO      //
+                ////////////////////////////////////////
+                pthread_t id;
+                pthread_create(&id, NULL, foo, (void *)saveData);
+                sleep(2);
+
+                ////////////////////////////////////////
+                //     RESIVIENDO LOS DATOS DEL HILO  //
+                ///////////////////////////////////////
+                // int *ptr;
+                // pthread_join(id, (void **)&ptr);
+                // printf("Value recevied by parent from child: ");
+                // int *answer_beeing_an_int_arr = ptr;
+                // printf(" %d", ((int*)&ptr)[0]);
+                ///////////////////////////////////////////
+
+                ////////////////////////////////////////
+                //    ENVIANDADO DATOS AL SERVER     //
+                ///////////////////////////////////////
+
+                // //Send some data
+                // if (send(sock, message, strlen(message), 0) < 0)
+                // {
+                //     puts("Send failed");
+                //     return 1;
+                // }
+
+                //Receive a reply from the server
+                if (recv(sock, server_reply, 2000, 0) < 0)
+                {
+                    puts("recv failed");
+                    break;
+                }
+
+                puts("EL SERVER ENVIO :");
+                puts(server_reply);
+                memset(server_reply, 0, sizeof(server_reply));
+
+                ///////////////////////////////////////
+                // CREA EL JSON Y LO ENVIA AL SERVER //
+                ///////////////////////////////////////
+                
+                json_object *jobj = makeJson(saveData[0], saveData[1]);
+                char temp_buff[2000];
+
+                if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+                {
+                    perror("strcpy");
+                    return EXIT_FAILURE;
+                }
+
+                //ACA LO ENVIA
+                //send(sock, message, strlen(message), 0) < 0
+                if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+                {
+                    perror("demodemoserverAddrserverAddr");
+                    return EXIT_FAILURE;
+                }
+
                 break;
 
-            
             ////////////////////////////////
             //           SALIDA           //
             ////////////////////////////////
@@ -185,7 +281,7 @@ void client()
             }
         } while (flagComunication == 0);
 
-    }//FIN DE CLIENTE 
+    } //FIN DE CLIENTE
     close(sock);
 }
 
@@ -285,171 +381,171 @@ int main(int argc, char *argv[])
 
     //     /* Fin del anidamiento */
 
-    //     // if (flag == 1)
-    //     // {
-    //     //     printf("Enter message : ");
-    //     //     scanf("%s", message);
+    //     if (flag == 1)
+    //     {
+    //         printf("Enter message : ");
+    //         scanf("%s", message);
 
-    //     //     // //Send some data
-    //     //     // if (send(sock, message, strlen(message), 0) < 0)
-    //     //     // {
-    //     //     //     puts("Send failed");
-    //     //     //     return 1;
-    //     //     // }
+    //         // //Send some data
+    //         // if (send(sock, message, strlen(message), 0) < 0)
+    //         // {
+    //         //     puts("Send failed");
+    //         //     return 1;
+    //         // }
 
-    //     //     //Receive a reply from the server
-    //     //     if (recv(sock, server_reply, 2000, 0) < 0)
-    //     //     {
-    //     //         puts("recv failed");
-    //     //         break;
-    //     //     }
+    //         //Receive a reply from the server
+    //         if (recv(sock, server_reply, 2000, 0) < 0)
+    //         {
+    //             puts("recv failed");
+    //             break;
+    //         }
 
-    //     //     puts("EL SERVER ENVIO :");
-    //     //     puts(server_reply);
-    //     //     memset(server_reply, 0, sizeof(server_reply));
+    //         puts("EL SERVER ENVIO :");
+    //         puts(server_reply);
+    //         memset(server_reply, 0, sizeof(server_reply));
 
-    //     //     ///////////////////////////////////////
-    //     //     ///////////////////////////////////////
-    //     //     /*Creating a json object*/
-    //     //     json_object *jobj = json_object_new_object();
+    //         ///////////////////////////////////////
+    //         ///////////////////////////////////////
+    //         /*Creating a json object*/
+    //         json_object *jobj = json_object_new_object();
 
-    //     //     /*Creating a json string*/
-    //     //     json_object *jstring = json_object_new_string("PONCHO");
+    //         /*Creating a json string*/
+    //         json_object *jstring = json_object_new_string("PONCHO");
 
-    //     //     /*Creating a json integer*/
-    //     //     json_object *jint = json_object_new_int(15);
+    //         /*Creating a json integer*/
+    //         json_object *jint = json_object_new_int(15);
 
-    //     //     // /*Creating a json boolean*/
-    //     //     // json_object *jboolean = json_object_new_boolean(1);
+    //         // /*Creating a json boolean*/
+    //         // json_object *jboolean = json_object_new_boolean(1);
 
-    //     //     // /*Creating a json double*/
-    //     //     // json_object *jdouble = json_object_new_double(2.14);
+    //         // /*Creating a json double*/
+    //         // json_object *jdouble = json_object_new_double(2.14);
 
-    //     //     /*Creating a json array*/
-    //     //     json_object *jarray = json_object_new_array();
+    //         /*Creating a json array*/
+    //         json_object *jarray = json_object_new_array();
 
-    //     //     /*Creating json strings*/
-    //     //     json_object *jstring1 = json_object_new_string("PAULA");
-    //     //     json_object *jstring2 = json_object_new_string("PAULAA");
-    //     //     json_object *jstring3 = json_object_new_string("Y PAULAAA");
+    //         /*Creating json strings*/
+    //         json_object *jstring1 = json_object_new_string("PAULA");
+    //         json_object *jstring2 = json_object_new_string("PAULAA");
+    //         json_object *jstring3 = json_object_new_string("Y PAULAAA");
 
-    //     //     /*Adding the above created json strings to the array*/
-    //     //     json_object_array_add(jarray, jstring1);
-    //     //     json_object_array_add(jarray, jstring2);
-    //     //     json_object_array_add(jarray, jstring3);
+    //         /*Adding the above created json strings to the array*/
+    //         json_object_array_add(jarray, jstring1);
+    //         json_object_array_add(jarray, jstring2);
+    //         json_object_array_add(jarray, jstring3);
 
-    //     //     /*Form the json object*/
-    //     //     /*Each of these is like a key value pair*/
-    //     //     json_object_object_add(jobj, "name", jstring);
-    //     //     // json_object_object_add(jobj, "Technical blog", jboolean);
-    //     //     // json_object_object_add(jobj, "Average posts per day", jdouble);
-    //     //     json_object_object_add(jobj, "age", jint);
-    //     //     json_object_object_add(jobj, "friends", jarray);
+    //         /*Form the json object*/
+    //         /*Each of these is like a key value pair*/
+    //         json_object_object_add(jobj, "name", jstring);
+    //         // json_object_object_add(jobj, "Technical blog", jboolean);
+    //         // json_object_object_add(jobj, "Average posts per day", jdouble);
+    //         json_object_object_add(jobj, "age", jint);
+    //         json_object_object_add(jobj, "friends", jarray);
 
-    //     //     printf("Size of JSON object- %lu\n", sizeof(jobj));
-    //     //     printf("Size of JSON_TO_STRING- %lu,\n %s\n", sizeof(json_object_to_json_string(jobj)), json_object_to_json_string(jobj));
-    //     //     char temp_buff[2000];
+    //         printf("Size of JSON object- %lu\n", sizeof(jobj));
+    //         printf("Size of JSON_TO_STRING- %lu,\n %s\n", sizeof(json_object_to_json_string(jobj)), json_object_to_json_string(jobj));
+    //         char temp_buff[2000];
 
-    //     //     if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
-    //     //     {
-    //     //         perror("strcpy");
-    //     //         return EXIT_FAILURE;
-    //     //     }
+    //         if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+    //         {
+    //             perror("strcpy");
+    //             return EXIT_FAILURE;
+    //         }
 
-    //     //     //ACA LO ENVIA
-    //     //     //send(sock, message, strlen(message), 0) < 0
-    //     //     if (send(sock, temp_buff, strlen(temp_buff),0) < 0 )
-    //     //     {
-    //     //         perror("demodemoserverAddrserverAddr");
-    //     //         return EXIT_FAILURE;
-    //     //     }
-    //     //     /////////////////////////////////////////////
-    //     //     /////////////////////////////////////////////
-    //     //     /////////////////////////////////////////////
-    //     // }
-    //     // else
-    //     // {
-    //     //     // memset(message, 0, sizeof(message));
+    //         //ACA LO ENVIA
+    //         //send(sock, message, strlen(message), 0) < 0
+    //         if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+    //         {
+    //             perror("demodemoserverAddrserverAddr");
+    //             return EXIT_FAILURE;
+    //         }
+    //         /////////////////////////////////////////////
+    //         /////////////////////////////////////////////
+    //         /////////////////////////////////////////////
+    //     }
+    //     else
+    //     {
+    //         // memset(message, 0, sizeof(message));
 
-    //     //     // //Send some data
-    //     //     // if (send(sock, message, strlen(message), 0) < 0)
-    //     //     // {
-    //     //     //     puts("Send failed");
-    //     //     //     return 1;
-    //     //     // }
-    //     //     ///////////////////////////////////////
-    //     //     ///////////////////////////////////////
-    //     //     /*Creating a json object*/
-    //     //     json_object *jobj = json_object_new_object();
+    //         // //Send some data
+    //         // if (send(sock, message, strlen(message), 0) < 0)
+    //         // {
+    //         //     puts("Send failed");
+    //         //     return 1;
+    //         // }
+    //         ///////////////////////////////////////
+    //         ///////////////////////////////////////
+    //         /*Creating a json object*/
+    //         json_object *jobj = json_object_new_object();
 
-    //     //     /*Creating a json string*/
-    //     //     json_object *jstring = json_object_new_string("PONCHO");
+    //         /*Creating a json string*/
+    //         json_object *jstring = json_object_new_string("PONCHO");
 
-    //     //     /*Creating a json integer*/
-    //     //     json_object *jint = json_object_new_int(15);
+    //         /*Creating a json integer*/
+    //         json_object *jint = json_object_new_int(15);
 
-    //     //     // /*Creating a json boolean*/
-    //     //     // json_object *jboolean = json_object_new_boolean(1);
+    //         // /*Creating a json boolean*/
+    //         // json_object *jboolean = json_object_new_boolean(1);
 
-    //     //     // /*Creating a json double*/
-    //     //     // json_object *jdouble = json_object_new_double(2.14);
+    //         // /*Creating a json double*/
+    //         // json_object *jdouble = json_object_new_double(2.14);
 
-    //     //     /*Creating a json array*/
-    //     //     json_object *jarray = json_object_new_array();
+    //         /*Creating a json array*/
+    //         json_object *jarray = json_object_new_array();
 
-    //     //     /*Creating json strings*/
-    //     //     json_object *jstring1 = json_object_new_string("PAULA");
-    //     //     json_object *jstring2 = json_object_new_string("PAULAA");
-    //     //     json_object *jstring3 = json_object_new_string("Y PAULAAA");
+    //         /*Creating json strings*/
+    //         json_object *jstring1 = json_object_new_string("PAULA");
+    //         json_object *jstring2 = json_object_new_string("PAULAA");
+    //         json_object *jstring3 = json_object_new_string("Y PAULAAA");
 
-    //     //     /*Adding the above created json strings to the array*/
-    //     //     json_object_array_add(jarray, jstring1);
-    //     //     json_object_array_add(jarray, jstring2);
-    //     //     json_object_array_add(jarray, jstring3);
+    //         /*Adding the above created json strings to the array*/
+    //         json_object_array_add(jarray, jstring1);
+    //         json_object_array_add(jarray, jstring2);
+    //         json_object_array_add(jarray, jstring3);
 
-    //     //     /*Form the json object*/
-    //     //     /*Each of these is like a key value pair*/
-    //     //     json_object_object_add(jobj, "name", jstring);
-    //     //     // json_object_object_add(jobj, "Technical blog", jboolean);
-    //     //     // json_object_object_add(jobj, "Average posts per day", jdouble);
-    //     //     json_object_object_add(jobj, "age", jint);
-    //     //     json_object_object_add(jobj, "friends", jarray);
+    //         /*Form the json object*/
+    //         /*Each of these is like a key value pair*/
+    //         json_object_object_add(jobj, "name", jstring);
+    //         // json_object_object_add(jobj, "Technical blog", jboolean);
+    //         // json_object_object_add(jobj, "Average posts per day", jdouble);
+    //         json_object_object_add(jobj, "age", jint);
+    //         json_object_object_add(jobj, "friends", jarray);
 
-    //     //     printf("Size of JSON object- %lu\n", sizeof(jobj));
-    //     //     printf("Size of JSON_TO_STRING- %lu,\n %s\n", sizeof(json_object_to_json_string(jobj)), json_object_to_json_string(jobj));
-    //     //     char temp_buff[2000];
+    //         printf("Size of JSON object- %lu\n", sizeof(jobj));
+    //         printf("Size of JSON_TO_STRING- %lu,\n %s\n", sizeof(json_object_to_json_string(jobj)), json_object_to_json_string(jobj));
+    //         char temp_buff[2000];
 
-    //     //     if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
-    //     //     {
-    //     //         perror("strcpy");
-    //     //         return EXIT_FAILURE;
-    //     //     }
+    //         if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+    //         {
+    //             perror("strcpy");
+    //             return EXIT_FAILURE;
+    //         }
 
-    //     //     //ACA LO ENVIA
-    //     //     //send(sock, message, strlen(message), 0) < 0
-    //     //     if (send(sock, temp_buff, strlen(temp_buff),0) < 0 )
-    //     //     {
-    //     //         perror("demodemoserverAddrserverAddr");
-    //     //         return EXIT_FAILURE;
-    //     //     }
-    //     //     /////////////////////////////////////////////
-    //     //     /////////////////////////////////////////////
-    //     //     /////////////////////////////////////////////
+    //         //ACA LO ENVIA
+    //         //send(sock, message, strlen(message), 0) < 0
+    //         if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+    //         {
+    //             perror("demodemoserverAddrserverAddr");
+    //             return EXIT_FAILURE;
+    //         }
+    //         /////////////////////////////////////////////
+    //         /////////////////////////////////////////////
+    //         /////////////////////////////////////////////
 
-    //     //     //Receive a reply from the server
-    //     //     if (recv(sock, server_reply, 2000, 0) < 0)
-    //     //     {
-    //     //         puts("recv failed");
-    //     //         break;
-    //     //     }
+    //         //Receive a reply from the server
+    //         if (recv(sock, server_reply, 2000, 0) < 0)
+    //         {
+    //             puts("recv failed");
+    //             break;
+    //         }
 
-    //     //     puts("Server reply :");
-    //     //     puts(server_reply);
-    //     //     memset(server_reply, 0, sizeof(server_reply));
-    //     //     flag++;
-    //     // }
+    //         puts("Server reply :");
+    //         puts(server_reply);
+    //         memset(server_reply, 0, sizeof(server_reply));
+    //         flag++;
+    //     }
     // }
 
     // close(sock);
-    return 0;
+    // return 0;
 }

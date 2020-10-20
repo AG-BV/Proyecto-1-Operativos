@@ -87,9 +87,8 @@ void *connection_handler(void *socket_desc)
 {
     struct json_object *parsed_json;
     struct json_object *name;
-    struct json_object *age;
-    struct json_object *friends;
-    struct json_object *friend;
+    struct json_object *burst;
+    struct json_object *priority;
     size_t n_friends;
 
     size_t i;
@@ -115,20 +114,12 @@ void *connection_handler(void *socket_desc)
         //if(IsJsonString(client_message)
         parsed_json = json_tokener_parse(client_message);
         json_object_object_get_ex(parsed_json, "name", &name);
-        json_object_object_get_ex(parsed_json, "age", &age);
-        json_object_object_get_ex(parsed_json, "friends", &friends);
+        json_object_object_get_ex(parsed_json, "burst", &burst);
+        json_object_object_get_ex(parsed_json, "priority",&priority);
 
-        printf("Name: %s\n", json_object_get_string(name));
-        printf("Age: %d\n", json_object_get_int(age));
-
-        n_friends = json_object_array_length(friends);
-        printf("Found %lu friends\n", n_friends);
-
-        for (i = 0; i < n_friends; i++)
-        {
-            friend = json_object_array_get_idx(friends, i);
-            printf("%lu. %s\n", i + 1, json_object_get_string(friend));
-        }
+        printf("NAME: %s\n", json_object_get_string(name));
+        printf("BURST: %d\n", json_object_get_int(burst));
+        printf("PRIORITY: %d\n", json_object_get_int(priority));
 
         //Send the message back to client
         puts("EL CLIENTE ENVIO :");
