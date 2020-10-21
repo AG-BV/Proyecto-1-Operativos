@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include <string.h> //strlen
-#include <stdlib.h> //strlen
+#include <string.h>
+#include <stdlib.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>   //inet_addr
-#include <unistd.h>      //write
-#include <pthread.h>     //for threading , link with lpthread
-#include <json-c/json.h> //JSON
+#include <arpa/inet.h>
+#include <unistd.h>    
+#include <pthread.h>
+#include <json-c/json.h>
 #include "JobTaskList.c"
 
 pthread_t jobScheduler;
@@ -13,15 +13,15 @@ int GlobalID = 0;
 
 struct arguments
 {
-    /* data */
     int id;
     int priority;
     int burst;
 };
 
-void *jobSchedulerTask(struct arguments *pArgs)
+void *jobSchedulerTask(void *pArgs)
 {
-    insert(pArgs->id, pArgs->priority, pArgs->burst);
+    struct arguments *args = (struct arguments *)pArgs;
+    insert(args->id, args->priority, args->burst);
 }
 
 void *connection_handler(void *socket_desc)
@@ -31,46 +31,42 @@ void *connection_handler(void *socket_desc)
     struct json_object *burst;
     struct json_object *priority;
     size_t n_friends;
+    int burstT;
+    int priorityT;
 
     size_t i;
-    //Get the socket descriptor
+
     int sock = *(int *)socket_desc;
     int read_size;
     char *message;
     char client_message[2000];
 
-    //Send some messages to the client
     message = " Greetings! I am your connection handler\n Now type something and i shall repeat what you type \n";
     write(sock, message, strlen(message));
 
-    // message = "Now type something and i shall repeat what you type \n";
-    // write(sock , message , strlen(message));
-
-    //Receive a message from client
 
     while ((read_size = recv(sock, client_message, 2000, 0)) > 0)
     {
-        //if(IsJsonString(client_message)
         parsed_json = json_tokener_parse(client_message);
         json_object_object_get_ex(parsed_json, "name", &name);
         json_object_object_get_ex(parsed_json, "burst", &burst);
         json_object_object_get_ex(parsed_json, "priority", &priority);
 
-        printf("NAME: %s\n", json_object_get_string(name));
-        printf("BURST: %d\n", json_object_get_int(burst));
-        printf("PRIORITY: %d\n", json_object_get_int(priority));
+        burstT = json_object_get_int(burst);
+        priorityT = json_object_get_int(priority);
 
-        int burst = json_object_get_int(parsed_json);
-        int prority = json_object_get_int(prority);
+        printf("BURST: %d\n", burstT);
+        printf("PRIORITY: %d\n", priorityT);
+
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
         args->id = rand();
-        args->priority = prority;
-        args->burst = burst;
-        //Send the message back to client
+        args->priority = priorityT;
+        args->burst = burstT;
+
         puts("EL CLIENTE ENVIO :");
         puts(client_message);
 
-        pthread_create(&jobScheduler, NULL, jobSchedulerTask, args);
+        pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
 
         write(sock, client_message, strlen(client_message));
         memset(client_message, 0, sizeof(client_message));
@@ -97,7 +93,6 @@ int connection()
     int socket_desc, client_sock, c, *new_sock;
     struct sockaddr_in server, client;
 
-    //Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1)
     {
@@ -105,24 +100,19 @@ int connection()
     }
     puts("Socket created");
 
-    //Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(8888);
 
-    //Bind
     if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
-        //print the error message
         perror("bind failed. Error");
         return 1;
     }
     puts("bind done");
 
-    //Listen
     listen(socket_desc, 3);
 
-    //Accept and incoming connection
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 
@@ -140,8 +130,6 @@ int connection()
             return 1;
         }
 
-        //Now join the thread , so that we dont terminate before the thread
-        //pthread_join( sniffer_thread , NULL);
         puts("Handler assigned");
     }
 

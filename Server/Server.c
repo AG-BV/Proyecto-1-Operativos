@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "connection.c"
 
-int main(int argc, char *argv[]){
+int main(){
     connection();
     return 0;
 }
