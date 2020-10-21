@@ -7,10 +7,8 @@
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
 
-static int iThread;
-
 /////////////////////////////////////////////////////
-//                     THREAD                      //
+//               THREAD  DE  ENVIO                 //
 /////////////////////////////////////////////////////
 void *foo(void *p)
 {
@@ -18,54 +16,28 @@ void *foo(void *p)
     printf("\n");
     printf("\n");
     printf("   SOY EL HILO LOS DATOS DEL PROCESO SON : \n");
-    printf("   EL BURST DEL PROCESO ES DE : %d\n", my_data[iThread]);
-    printf("   LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[iThread + 1]);
+    printf("   EL BURST DEL PROCESO ES DE : %d\n", my_data[0]);
+    printf("   LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[1]);
     printf("   ESPERAMOS 2 SEGUNDOS \n");
+    sleep(2);
     // Return reference to global variable:
     pthread_exit(my_data);
 }
 
+
 /////////////////////////////////////////////////////
-// LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
+//               THREAD  DE  LECTURA               //
 /////////////////////////////////////////////////////
-int *readFile(char *pData)
+void *func(void *p)
 {
-    FILE *fp;
-    int max = 500;
-    char str[max];
-    static int save[4];
-    int i = 0;
-    bool flagT = false;
-
-    fp = fopen(pData, "r");
-    if (fp == NULL)
-    {
-        printf("\n ||==========================================||");
-        printf("\n ||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
-        printf("-----||");
-        printf("\n ||==========================================||");
-    }
-
+    int randomData = (rand() % (8 - 3 + 1)) + 3;
     printf("\n ||==========================================||");
-    printf("\n ||-------------ARCHIVO-CARGADO--------------||");
+    printf("\n ||      ESPERO %d PARA LEER SEGUNDOS         || ", randomData);
     printf("\n ||==========================================||");
-    while (fgets(str,max, fp) != NULL)
-    {
-        //printf("\n         %s", str);
-        char *token = strtok(str, " ");
-
-        while (token != NULL && flagT)
-        {
-            int vOut = atoi(token);
-            save[i] = vOut;
-            token = strtok(NULL, " ");
-            i++;
-        }
-        flagT = true;
-    }
-    fclose(fp);
-    return save;
+    sleep(randomData);
+    pthread_exit(&randomData);
 }
+
 
 /////////////////////////////////////////////////////
 //                 CREA UN JSON                    //
@@ -88,23 +60,35 @@ json_object *makeJson(int pData1, int pData2)
 /////////////////////////////////////////////////////
 //                     CLIENTE                     //
 /////////////////////////////////////////////////////
-void  client()
+void client()
 {
 
     ////////////////////////////////
     //         VARIABLES          //
     ////////////////////////////////
 
-    pthread_t id;
+    // SOCKET AND THREAD
+    pthread_t id,pthRead,thread1;
     json_object *jobj;
     struct sockaddr_in server;
-
     int n, opcion, sock;
     int flag = 0;
     int flagComunication = 0;
+    int randomData;
+    int *ptr, *saveData, *ptr2;
+    char temp_buff[50], server_reply[50], name[20];
 
-    int *ptr, *saveData;
-    char temp_buff[2000], server_reply[2000], name[20];
+    //READ FILE
+    FILE *fp;
+    int max = 50;
+    char str1[50];
+    int save[2];
+    int *aux;
+    int count = 0;
+    bool flagT = false;
+
+
+
 
     ////////////////////////////////
     //   CONSTRUCCION DEL MENU    //
@@ -211,86 +195,130 @@ void  client()
                 printf("\n");
                 scanf("%s", name);
 
+
+
                 ////////////////////////////////////////////////
-                //  OBTIENE LOS DATOS PARA CARGAR EN EL HILO //
+                //         LEE EL ARCHIVO SELECCIONADO        //
                 ///////////////////////////////////////////////
-                saveData = readFile(name); // ocupa un try catch
-                size_t len = sizeof(saveData) / sizeof(saveData[0]);
-
-                ////////////////////////////////////////
-                //          CICLO DE PROCESOS         //
-                ////////////////////////////////////////
-                for (iThread = 0; iThread < len + 1; iThread += 2)
+                fp = fopen(name, "r");
+                if (fp == NULL)
                 {
-
-                    ////////////////////////////////////////
-                    //     ENVIADO LOS DATOS AL HILO      //
-                    ////////////////////////////////////////
-                    pthread_create(&id, NULL, foo, (void *)saveData);
-                    sleep(2);
-
-                    ////////////////////////////////////////
-                    //     RESIVIENDO LOS DATOS DEL HILO  //
-                    ///////////////////////////////////////
-                    pthread_join(id, (void **)&ptr);
-                    printf(separador, sizeof(separador));
-                    printf("\n");
-                    printf("\n    ENVIANDO LOS VALORES AL SERVER: ");
-                    int *answer_beeing_an_int_arr = ptr;
-                    int dataBurst = ((int *)ptr)[iThread];
-                    int dataPriority = ((int *)ptr)[iThread + 1];
-                    printf("\n    BURST :  %d", dataBurst);
-                    printf("\n    PRIORITY :  %d", dataPriority);
-                    printf("\n");
-                    printf(separador, sizeof(separador));
-                    printf("\n");
-
-                    ///////////////////////////////////////
-                    // CREA EL JSON Y LO ENVIA AL SERVER //
-                    ///////////////////////////////////////
-                    jobj = makeJson(dataBurst, dataPriority);
-
-                    if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
-                    {
-                        perror("strcpy");
-                       
-                    }
-
-                    ///////////////////////////////////////
-                    // ACA SE ENVIAN LOS DATOS AL SERVER //
-                    ///////////////////////////////////////
-                    //send(sock, message, strlen(message), 0) < 0//
-
-                    if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
-                    {
-                        perror("demodemoserverAddrserverAddr");
-                       
-                    }
-
-                    ///////////////////////////////////////
-                    //   LEE LA RESPUESTA DEL  SERVER    //
-                    ///////////////////////////////////////
-                    if (recv(sock, server_reply, 2000, 0) < 0)
-                    {
-                        puts("recv failed");
-                        break;
-                    }
-                    else
-                    {
-                        ///////////////////////////////////////
-                        //          LEE EL ID ASIGNADO       //
-                        ///////////////////////////////////////
-                        puts("EL SERVER ENVIO :");
-                        puts(server_reply);
-                        memset(server_reply, 0, sizeof(server_reply));
-
-                        ///////////////////////////////////////
-                        //          ELIMINA EL HILO          //
-                        ///////////////////////////////////////
-                        //int pthread_cancel(pthread_t id);
-                        void pthread_exit(void *id);
-                    }
+                    printf("\n ||==========================================||");
+                    printf("\n ||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", name);
+                    printf("-----||");
+                    printf("\n ||==========================================||");
                 }
+
+                printf("\n ||==========================================||");
+                printf("\n ||-------------ARCHIVO-CARGADO--------------||");
+                printf("\n ||==========================================||");
+
+                while (fgets(str1, max, fp) != NULL)
+                {
+                    char *token = strtok(str1, " ");
+
+                    while (token != NULL && flagT)
+                    {
+                        ////////////////////////////////////////////////
+                        //       RANDOM DE LECTURA PARA EL SLEEP     //
+                        ///////////////////////////////////////////////
+                        if (count == 0)
+                        {
+                            // hilo de lectura 
+                            pthread_create(&thread1, NULL, func, NULL);
+                            pthread_join(thread1, (void **)&ptr2);
+
+                            // datos de carga 
+                            int pData1 = atoi(token);
+                            token = strtok(NULL, " ");
+                            printf("\n         %d", pData1);
+                            save[count] = pData1;
+                            count++;
+                        }
+
+                        ////////////////////////////////////////
+                        //          CICLO DE PROCESOS         //
+                        ////////////////////////////////////////
+                        else
+                        {
+                            // DATOS DE CARGA 
+                            int pData1 = atoi(token);
+                            token = strtok(NULL, " ");
+                            printf("\n         %d", pData1);
+                            save[count] = pData1;
+                            count++;
+
+                            ////////////////////////////////////////
+                            //     ENVIADO LOS DATOS AL HILO      //
+                            ////////////////////////////////////////
+                            aux = save; // PUNTERO DEL ARRAY
+                            count = 0;  // RESTAURAR
+
+                            //HILO DE COMUNICACION
+                            pthread_create(&id, NULL, foo, (void *)aux);
+
+                            ////////////////////////////////////////
+                            //     RESIVIENDO LOS DATOS DEL HILO  //
+                            ///////////////////////////////////////
+                            pthread_join(id, (void **)&ptr);
+                            printf(separador, sizeof(separador));
+                            printf("\n");
+                            printf("\n    ENVIANDO LOS VALORES AL SERVER: ");
+                            int *answer_beeing_an_int_arr = ptr;
+                            int dataBurst = ((int *)ptr)[0];
+                            int dataPriority = ((int *)ptr)[1];
+                            printf("\n    BURST :  %d", dataBurst);
+                            printf("\n    PRIORITY :  %d", dataPriority);
+                            printf("\n");
+                            printf(separador, sizeof(separador));
+                            printf("\n");
+
+                            ///////////////////////////////////////
+                            // CREA EL JSON Y LO ENVIA AL SERVER //
+                            ///////////////////////////////////////
+                            jobj = makeJson(dataBurst, dataPriority);
+
+                            if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+                            {
+                                perror("strcpy");
+                            }
+
+                            ///////////////////////////////////////
+                            // ACA SE ENVIAN LOS DATOS AL SERVER //
+                            ///////////////////////////////////////
+                            if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+                            {
+                                perror("demodemoserverAddrserverAddr");
+                            }
+
+                            ///////////////////////////////////////
+                            //   LEE LA RESPUESTA DEL  SERVER    //
+                            ///////////////////////////////////////
+                            if (recv(sock, server_reply, 2000, 0) < 0)
+                            {
+                                puts("recv failed");
+                                break;
+                            }
+                            else
+                            {
+                                ///////////////////////////////////////
+                                //          LEE EL ID ASIGNADO       //
+                                ///////////////////////////////////////
+                                puts("EL SERVER ENVIO :");
+                                puts(server_reply);
+                                memset(server_reply, 0, sizeof(server_reply));
+
+                                ///////////////////////////////////////
+                                //          ELIMINA EL HILO          //
+                                ///////////////////////////////////////
+                                //int pthread_cancel(pthread_t id);
+                                void pthread_exit(void *id);
+                            }
+                        }
+                    }
+                    flagT = true;
+                }
+                fclose(fp);
                 break;
 
             ////////////////////////////////
