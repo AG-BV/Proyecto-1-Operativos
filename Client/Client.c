@@ -11,7 +11,7 @@
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
 #define MAXCHAR 500
-static int iThread;
+
 
 /////////////////////////////////////////////////////
 //                     STRUCS                      //
@@ -84,7 +84,7 @@ void socketClient()
     {
         printf("Could not create socket");
     }
-    puts("Socket created");
+    
 
     server.sin_addr.s_addr = inet_addr(strucIP);
     server.sin_family = AF_INET;
@@ -97,7 +97,7 @@ void socketClient()
     {
         perror("connect failed. Error");
     }
-    puts("Connected\n");
+   
 
     ////////////////////////////////
     //       SAVE SOCKED          //
@@ -155,8 +155,8 @@ void *foo(void *received_struct)
     }
     else
     {
-        printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
         printf("|| EL SERVER ENVIO :        %s              || \n", server_reply);
+        printf(" ");
         memset(server_reply, 0, sizeof(server_reply));
     }
 }
