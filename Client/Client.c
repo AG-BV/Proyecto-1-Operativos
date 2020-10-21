@@ -44,7 +44,6 @@ int randomData(int pUpper, int pLower)
 {
 
     int num = (rand() % (pUpper - pLower + 1)) + pLower;
-    printf("hola %d", num);
     return num;
 }
 
@@ -110,26 +109,30 @@ void socketClient()
     globalSocket->Ssock = sock;
 }
 
-
 /////////////////////////////////////////////////////
 //                SEND   THREAD                    //
 /////////////////////////////////////////////////////
 void *foo(void *received_struct)
 {
     int dataBurst = ((struct my_Struct_Client *)received_struct)->burst;
-    int dataPriority = ((struct my_Struct_Client *)received_struct)->burst;
+    int dataPriority = ((struct my_Struct_Client *)received_struct)->priority;
 
-    char temp_buff[2000];
-    char server_reply[50];
+    char temp_buff[20];
+    char server_reply[20];
+    char separador[] = "||==========================================|| \n";
 
-    printf("\n | BURS : %d", ((struct my_Struct_Client *)received_struct)->burst);
-    printf("\n| PRIORITY : %d", ((struct my_Struct_Client *)received_struct)->priority);
+    printf(separador, sizeof(separador));
+    printf("||HILO DE ENVIO,LOS DATOS DEL PROCESO SON : ||\n");
+    printf(separador, sizeof(separador));
+    printf("||              BURS : %d                    || \n", dataBurst);
+    printf(separador, sizeof(separador));
+    printf("||            PRIORITY : %d                  || \n", dataPriority);
+    printf(separador, sizeof(separador));
 
     ///////////////////////////////////////
     // CREA EL JSON Y LO ENVIA AL SERVER //
     ///////////////////////////////////////
-
-    json_object *jobj = makeJson( dataBurst , dataPriority);
+    json_object *jobj = makeJson(dataBurst, dataPriority);
 
     if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
     {
@@ -138,9 +141,23 @@ void *foo(void *received_struct)
 
     //ACA LO ENVIA
     //send(sock, message, strlen(message), 0) < 0
+    printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
+    sleep(2);
     if (send(globalSocket->Ssock, temp_buff, strlen(temp_buff), 0) < 0)
     {
         perror("demodemoserverAddrserverAddr");
+    }
+
+    //Receive a reply from the server
+    if (recv(globalSocket->Ssock, server_reply, strlen(server_reply), 0) < 0)
+    {
+        puts("recv failed");
+    }
+    else
+    {
+        printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
+        printf("|| EL SERVER ENVIO :        %s              || \n", server_reply);
+        memset(server_reply, 0, sizeof(server_reply));
     }
 }
 
@@ -162,15 +179,15 @@ void *readFile(void *received_struct)
     fp = fopen(pData, "r");
     if (fp == NULL)
     {
-        printf("\n ||==========================================||");
-        printf("\n ||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
-        printf("-----||");
-        printf("\n ||==========================================||");
+        printf("||==========================================||\n");
+        printf("||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
+        printf("-----||\n");
+        printf("||==========================================||\n");
     }
 
-    printf("\n ||==========================================||");
-    printf("\n ||-------------ARCHIVO-CARGADO--------------||");
-    printf("\n ||==========================================||");
+    printf("||==========================================||\n");
+    printf("||-------------ARCHIVO-CARGADO--------------||\n");
+    printf("||==========================================||\n");
     while (fgets(str, MAXCHAR, fp) != NULL)
     {
 
@@ -178,7 +195,7 @@ void *readFile(void *received_struct)
 
         while (token != NULL && flagT)
         {
-            printf("\n DATOS %s", token); //printing each token
+            //printf("\n DATOS %s", token); //printing each token
             int vOut = atoi(token);
             save[i] = vOut;
             token = strtok(NULL, " ");
@@ -195,24 +212,25 @@ void *readFile(void *received_struct)
                 data->priority = save[1];
 
                 ////////////////////////////////
-                //  LLAMADO A THREAD DE ENVIO //
-                ////////////////////////////////
-                pthread_create(&id, NULL, foo, (void *)data);
-                //pthread_join(id, NULL);
-
-                ////////////////////////////////
                 //     SLEEP BEFORE READ      //
                 ////////////////////////////////
                 numSleep = randomData(8, 3);
-                printf(" ESPERA %d  SEGUNDOS ANTES DE LEER \n", numSleep);
+                printf("||==========================================|| \n");
+                printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+                printf("||==========================================|| \n");
                 sleep(numSleep);
+
+                ////////////////////////////////
+                //  LLAMADO A THREAD DE ENVIO //
+                ////////////////////////////////
+                pthread_create(&id, NULL, foo, (void *)data);
+                pthread_join(id, NULL);
             }
         }
         flagT = true;
     }
     fclose(fp);
 }
-
 
 /////////////////////////////////////////////////////
 //                     CLIENTE                     //
@@ -228,16 +246,16 @@ void menuClient()
     ////////////////////////////////
     //   CONSTRUCCION DEL MENU    //
     ////////////////////////////////
-    char titulo[] = "\n ||---------------MENU-CLIENTE---------------||";
-    char tituloMM[] = "\n ||----------------MODO-MANUAL---------------||";
-    char tituloMA[] = "\n ||-------------MODO-AUTOMATICO--------------||";
-    char makeRandom[] = "\n ||--------GENERANDO-LOS-DATOS-RANDOMS-------||";
-    char searchFile[] = "\n ||------INTRODUZCA-EL-NOMBRE-DEL-ARCHIVO----||";
-    char MM[] = "\n || 1. MODO MANUAL                           ||";
-    char MA[] = "\n || 2. MODO AUTOMATICO                       ||";
-    char exit[] = "\n || 3. SALIR                                 ||";
-    char separador[] = "\n ||==========================================||";
-    char optionN[] = "\n ||------INTRODUZCA-UNA-OPCION-(1-3)---------||";
+    char titulo[] = "||---------------MENU-CLIENTE---------------||\n";
+    char tituloMM[] = "||----------------MODO-MANUAL---------------|\n";
+    char tituloMA[] = "||-------------MODO-AUTOMATICO--------------||\n";
+    char makeRandom[] = "||--------GENERANDO-LOS-DATOS-RANDOMS-------||\n";
+    char searchFile[] = "||------INTRODUZCA-EL-NOMBRE-DEL-ARCHIVO----||\n";
+    char MM[] = "|| 1. MODO MANUAL                           ||\n";
+    char MA[] = "|| 2. MODO AUTOMATICO                       ||\n";
+    char exit[] = "|| 3. SALIR                                 ||\n";
+    char separador[] = "||==========================================||\n";
+    char optionN[] = "||------INTRODUZCA-UNA-OPCION-(1-3)---------||\n";
 
     do
     {
@@ -316,5 +334,3 @@ int main(int argc, char *argv[])
     menuClient();
     return 0;
 }
-
-
