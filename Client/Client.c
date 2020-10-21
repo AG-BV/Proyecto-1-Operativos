@@ -12,6 +12,7 @@
 #include <json-c/json.h> //JSON
 #define MAXCHAR 500
 
+static int iThread;
 /////////////////////////////////////////////////////
 //                     THREAD                      //
 /////////////////////////////////////////////////////
@@ -20,11 +21,13 @@ void *foo(void *p)
 {
     int *my_data = p; /* data received by thread */
     printf("\n");
-    printf("SOY EL HILO LOS DATOS DEL PROCESO SON : \n");
-    printf("EL BURST DEL PROCESO ES DE : %d\n", my_data[0]);
-    printf("LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[1]);
+    printf("\n");
+    printf("   SOY EL HILO LOS DATOS DEL PROCESO SON : \n");
+    printf("   EL BURST DEL PROCESO ES DE : %d\n", my_data[iThread]);
+    printf("   LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[iThread + 1]);
+    printf("   ESPERAMOS 2 SEGUNDOS \n");
     // Return reference to global variable:
-    pthread_exit(*my_data);
+    pthread_exit(my_data);
 }
 
 /////////////////////////////////////////////////////
@@ -53,7 +56,7 @@ int *readFile(char *pData)
     printf("\n ||==========================================||");
     while (fgets(str, MAXCHAR, fp) != NULL)
     {
-        printf("\n         %s", str);
+        //printf("\n         %s", str);
         char *token = strtok(str, " ");
         // loop through the string to extract all other tokens
 
@@ -103,6 +106,7 @@ json_object *makeJson(int pData1, int pData2)
 /////////////////////////////////////////////////////
 void client()
 {
+    pthread_t id;
     pthread_t tid1;
     int sock;
     int flag = 0;
@@ -206,67 +210,82 @@ void client()
                 ///////////////////////////////////////////
                 //OBTIENE LOS DATOS PARA CARGAR EN EL HILO//
                 ///////////////////////////////////////////
+
                 int *saveData = readFile(name); // ocupa un try catch
+                size_t len = sizeof(saveData) / sizeof(saveData[0]);
 
-                ////////////////////////////////////////
-                //     ENVIADO LOS DATOS AL HILO      //
-                ////////////////////////////////////////
-                pthread_t id;
-                pthread_create(&id, NULL, foo, (void *)saveData);
-                sleep(2);
-
-                ////////////////////////////////////////
-                //     RESIVIENDO LOS DATOS DEL HILO  //
-                ///////////////////////////////////////
-                int *ptr;
-                pthread_join(id, (void **)&ptr);
-                printf("Value recevied by parent from child: ");
-                int *answer_beeing_an_int_arr = ptr;
-                printf(" %d", ((int*)&ptr)[0]);
-                ///////////////////////////////////////////
-
-                ////////////////////////////////////////
-                //    ENVIANDADO DATOS AL SERVER     //
-                ///////////////////////////////////////
-
-                // //Send some data
-                // if (send(sock, message, strlen(message), 0) < 0)
-                // {
-                //     puts("Send failed");
-                //     return 1;
-                // }
-
-                //Receive a reply from the server
-                if (recv(sock, server_reply, 2000, 0) < 0)
+                for (iThread = 0; iThread < len+1; iThread+=2)
                 {
-                    puts("recv failed");
-                    break;
+
+                    ////////////////////////////////////////
+                    //     ENVIADO LOS DATOS AL HILO      //
+                    ////////////////////////////////////////
+
+                    pthread_create(&id, NULL, foo, (void *)saveData);
+                    sleep(2);
+
+                    ////////////////////////////////////////
+                    //     RESIVIENDO LOS DATOS DEL HILO  //
+                    ///////////////////////////////////////
+                    int *ptr;
+                    pthread_join(id, (void **)&ptr);
+                    printf(separador, sizeof(separador));
+                    printf("\n");
+                    printf("\n    ENVIANDO LOS VALORES AL SERVER: ");
+                    int *answer_beeing_an_int_arr = ptr;
+                    int dataBurst = ((int *)ptr)[iThread];
+                    int dataPriority = ((int *)ptr)[iThread+1];
+                    printf("\n    BURST :  %d", dataBurst);
+                    printf("\n    PRIORITY :  %d", dataPriority );
+                    printf("\n");
+                    printf(separador, sizeof(separador));
+                    printf("\n");
+                    ///////////////////////////////////////////
+
+                    ////////////////////////////////////////
+                    //    ENVIANDADO DATOS AL SERVER     //
+                    ///////////////////////////////////////
+
+                    // //Send some data
+                    // if (send(sock, message, strlen(message), 0) < 0)
+                    // {
+                    //     puts("Send failed");
+                    //     return 1;
+                    // }
+
+                    ///////////////////////////////////////
+                    // CREA EL JSON Y LO ENVIA AL SERVER //
+                    ///////////////////////////////////////
+
+                    json_object *jobj = makeJson( dataBurst , dataPriority);
+                    char temp_buff[2000];
+
+                    if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+                    {
+                        perror("strcpy");
+                        return EXIT_FAILURE;
+                    }
+
+                    //ACA LO ENVIA
+                    //send(sock, message, strlen(message), 0) < 0
+                    if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+                    {
+                        perror("demodemoserverAddrserverAddr");
+                        return EXIT_FAILURE;
+                    }
+
+                    //Receive a reply from the server
+                    if (recv(sock, server_reply, 2000, 0) < 0)
+                    {
+                        puts("recv failed");
+                        break;
+                    }
+
+                    puts("EL SERVER ENVIO :");
+                    puts(server_reply);
+                    memset(server_reply, 0, sizeof(server_reply));
                 }
 
-                puts("EL SERVER ENVIO :");
-                puts(server_reply);
-                memset(server_reply, 0, sizeof(server_reply));
-
-                ///////////////////////////////////////
-                // CREA EL JSON Y LO ENVIA AL SERVER //
-                ///////////////////////////////////////
-
-                json_object *jobj = makeJson(saveData[0], saveData[1]);
-                char temp_buff[2000];
-
-                if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
-                {
-                    perror("strcpy");
-                    return EXIT_FAILURE;
-                }
-
-                //ACA LO ENVIA
-                //send(sock, message, strlen(message), 0) < 0
-                if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
-                {
-                    perror("demodemoserverAddrserverAddr");
-                    return EXIT_FAILURE;
-                }
                 break;
 
             ////////////////////////////////
