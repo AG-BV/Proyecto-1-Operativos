@@ -12,7 +12,6 @@
 #include <json-c/json.h> //JSON
 #define MAXCHAR 500
 
-
 /////////////////////////////////////////////////////
 //                     STRUCS                      //
 /////////////////////////////////////////////////////
@@ -84,7 +83,6 @@ void socketClient()
     {
         printf("Could not create socket");
     }
-    
 
     server.sin_addr.s_addr = inet_addr(strucIP);
     server.sin_family = AF_INET;
@@ -97,7 +95,6 @@ void socketClient()
     {
         perror("connect failed. Error");
     }
-   
 
     ////////////////////////////////
     //       SAVE SOCKED          //
@@ -112,7 +109,7 @@ void socketClient()
 /////////////////////////////////////////////////////
 //                SEND   THREAD                    //
 /////////////////////////////////////////////////////
-void *foo(void *received_struct)
+void *sendData(void *received_struct)
 {
     int dataBurst = ((struct my_Struct_Client *)received_struct)->burst;
     int dataPriority = ((struct my_Struct_Client *)received_struct)->priority;
@@ -184,10 +181,6 @@ void *readFile(void *received_struct)
         printf("-----||\n");
         printf("||==========================================||\n");
     }
-
-    printf("||==========================================||\n");
-    printf("||-------------ARCHIVO-CARGADO--------------||\n");
-    printf("||==========================================||\n");
     while (fgets(str, MAXCHAR, fp) != NULL)
     {
 
@@ -223,7 +216,7 @@ void *readFile(void *received_struct)
                 ////////////////////////////////
                 //  LLAMADO A THREAD DE ENVIO //
                 ////////////////////////////////
-                pthread_create(&id, NULL, foo, (void *)data);
+                pthread_create(&id, NULL, sendData, (void *)data);
                 pthread_join(id, NULL);
             }
         }
@@ -233,11 +226,47 @@ void *readFile(void *received_struct)
 }
 
 /////////////////////////////////////////////////////
+//                AUTOMATIC THREAD                  //
+/////////////////////////////////////////////////////
+void *automatic(void *received_struct)
+{
+
+    pthread_t id;
+    int numSleep;
+
+    while (1)
+    {
+        ///////////////////////////////////////////
+        //  DATOS STRUC PARA EL HILO DE LECTURA //
+        ///////////////////////////////////////////
+        struct my_Struct_Client *data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
+        data->burst = randomData(5, 1);
+        data->priority = randomData(5, 1);
+
+        ////////////////////////////////
+        //     SLEEP BEFORE READ      //
+        ////////////////////////////////
+        numSleep = randomData(8, 3);
+        printf("||==========================================|| \n");
+        printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+        printf("||==========================================|| \n");
+        sleep(numSleep);
+
+        ////////////////////////////////
+        //  LLAMADO A THREAD DE ENVIO //
+        ////////////////////////////////
+        pthread_create(&id, NULL, sendData, (void *)data);
+        pthread_join(id, NULL);
+    }
+}
+
+/////////////////////////////////////////////////////
 //                     CLIENTE                     //
 /////////////////////////////////////////////////////
 void menuClient()
 {
     pthread_t id;
+    pthread_t AutoMode;
     int flagComunication = 0;
     struct my_Struct_File *data;
     int n, opcion;
@@ -247,12 +276,12 @@ void menuClient()
     //   CONSTRUCCION DEL MENU    //
     ////////////////////////////////
     char titulo[] = "||---------------MENU-CLIENTE---------------||\n";
-    char tituloMM[] = "||----------------MODO-MANUAL---------------|\n";
-    char tituloMA[] = "||-------------MODO-AUTOMATICO--------------||\n";
+    char tituloMA[] = "||----------------MODO-MANUAL---------------||\n";
+    char tituloMM[] = "||-------------MODO-AUTOMATICO--------------||\n";
     char makeRandom[] = "||--------GENERANDO-LOS-DATOS-RANDOMS-------||\n";
     char searchFile[] = "||------INTRODUZCA-EL-NOMBRE-DEL-ARCHIVO----||\n";
-    char MM[] = "|| 1. MODO MANUAL                           ||\n";
-    char MA[] = "|| 2. MODO AUTOMATICO                       ||\n";
+    char MM[] = "|| 1. MODO AUTOMATICO                       ||\n";
+    char MA[] = "|| 2. MODO MANUAL                           ||\n";
     char exit[] = "|| 3. SALIR                                 ||\n";
     char separador[] = "||==========================================||\n";
     char optionN[] = "||------INTRODUZCA-UNA-OPCION-(1-3)---------||\n";
@@ -289,7 +318,11 @@ void menuClient()
             printf(separador, sizeof(separador));
             printf(makeRandom, sizeof(makeRandom));
             printf(separador, sizeof(separador));
-            scanf("%d", &n);
+            ////////////////////////////////
+            //       READ  THREAD         //
+            ////////////////////////////////
+            pthread_create(&AutoMode, NULL, automatic,NULL);
+            pthread_join(AutoMode, NULL);
             break;
 
         //////////////////////////////////
