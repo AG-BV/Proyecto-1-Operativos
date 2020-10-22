@@ -8,6 +8,8 @@
 			"args": [
 				"-g",
 				"${file}",
+				"-lpthread",
+				"-ljson-c",
 				"-o",
 				"${fileDirname}/${fileBasenameNoExtension}"
 			],
