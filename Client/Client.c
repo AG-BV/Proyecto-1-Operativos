@@ -12,75 +12,38 @@
 #include <json-c/json.h> //JSON
 #define MAXCHAR 500
 
-static int iThread;
 /////////////////////////////////////////////////////
-//                     THREAD                      //
+//                     STRUCS                      //
 /////////////////////////////////////////////////////
+struct my_Struct_Socket *globalSocket;
 
-void *foo(void *p)
+struct my_Struct_File
 {
-    int *my_data = p; /* data received by thread */
-    printf("\n");
-    printf("\n");
-    printf("   SOY EL HILO LOS DATOS DEL PROCESO SON : \n");
-    printf("   EL BURST DEL PROCESO ES DE : %d\n", my_data[iThread]);
-    printf("   LA PRIOIRDAD DEL PROCESO ES DE : %d\n", my_data[iThread + 1]);
-    printf("   ESPERAMOS 2 SEGUNDOS \n");
-    // Return reference to global variable:
-    pthread_exit(my_data);
-}
+    char *tittle;
+};
 
-/////////////////////////////////////////////////////
-// LEE EL ARCHIVO Y GUARDA LOS DATOS EN UN ARREGLO //
-/////////////////////////////////////////////////////
-int *readFile(char *pData)
+struct my_Struct_Client
 {
-    FILE *fp;
-    char str[MAXCHAR];
-    static int save[4];
-    int i = 0;
-    bool flagT = false;
+    int burst;
+    int priority;
+};
 
-    fp = fopen(pData, "r");
-    if (fp == NULL)
-    {
-        printf("\n ||==========================================||");
-        printf("\n ||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
-        printf("-----||");
-        printf("\n ||==========================================||");
-        return 1;
-    }
+struct my_Struct_Socket
+{
+    struct sockaddr_in Sserver;
+    char *SstrucIP;
+    int SstrucSocket;
+    int Ssock;
+};
 
-    printf("\n ||==========================================||");
-    printf("\n ||-------------ARCHIVO-CARGADO--------------||");
-    printf("\n ||==========================================||");
-    while (fgets(str, MAXCHAR, fp) != NULL)
-    {
-        //printf("\n         %s", str);
-        char *token = strtok(str, " ");
-        // loop through the string to extract all other tokens
+/////////////////////////////////////////////////////
+//                     RANDOM                      //
+/////////////////////////////////////////////////////
+int randomData(int pUpper, int pLower)
+{
 
-        while (token != NULL && flagT)
-        {
-            //printf(" %s", token); //printing each token
-            int vOut = atoi(token);
-            save[i] = vOut;
-            token = strtok(NULL, " ");
-            i++;
-        }
-        //printf("\n");
-        flagT = true;
-    }
-
-    // int j;
-    // /* output each array element's value */
-    // for (j = 0; j < 4; j++)
-    // {
-    //     printf("\n Element[%d] = %d\n", j, save[j]);
-    // }
-
-    fclose(fp);
-    return save;
+    int num = (rand() % (pUpper - pLower + 1)) + pLower;
+    return num;
 }
 
 /////////////////////////////////////////////////////
@@ -102,207 +65,305 @@ json_object *makeJson(int pData1, int pData2)
 }
 
 /////////////////////////////////////////////////////
-//                     CLIENTE                     //
+//                 SOCKET CLIENTE                  //
 /////////////////////////////////////////////////////
-void client()
+void socketClient()
 {
-    pthread_t id;
-    pthread_t tid1;
-    int sock;
-    int flag = 0;
-    int flagComunication = 0;
     struct sockaddr_in server;
-    char message[1000], server_reply[2000];
+    char strucIP[] = "127.0.0.1";
+    int strucSocket = 8888;
+    int sock;
 
     ////////////////////////////////
-    //-------CREA EL SOCKET-------//
+    //       CREA EL SOCKET       //
     ////////////////////////////////
     sock = socket(AF_INET, SOCK_STREAM, 0);
+
     if (sock == -1)
     {
         printf("Could not create socket");
     }
-    puts("Socket created");
 
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_addr.s_addr = inet_addr(strucIP);
     server.sin_family = AF_INET;
-    server.sin_port = htons(8888);
+    server.sin_port = htons(strucSocket);
 
     ////////////////////////////////
-    //--Connect to remote server--//
+    //     CONECTA AL SERVER      //
     ////////////////////////////////
     if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
         perror("connect failed. Error");
-        return 1;
     }
 
-    puts("Connected\n");
+    ////////////////////////////////
+    //       SAVE SOCKED          //
+    ////////////////////////////////
+    globalSocket = (struct my_Struct_Socket *)malloc(sizeof(struct my_Struct_Socket));
+    globalSocket->Sserver = server;
+    globalSocket->SstrucIP = strucIP;
+    globalSocket->SstrucSocket = strucSocket;
+    globalSocket->Ssock = sock;
+}
 
-    //////////////////////////////////
-    //keep communicating with server//
-    //////////////////////////////////
+/////////////////////////////////////////////////////
+//                SEND   THREAD                    //
+/////////////////////////////////////////////////////
+void *sendData(void *received_struct)
+{
+    int dataBurst = ((struct my_Struct_Client *)received_struct)->burst;
+    int dataPriority = ((struct my_Struct_Client *)received_struct)->priority;
 
-    while (flagComunication == 0)
+    char temp_buff[20];
+    char server_reply[20];
+    char separador[] = "||==========================================|| \n";
+
+    printf(separador, sizeof(separador));
+    printf("||HILO DE ENVIO,LOS DATOS DEL PROCESO SON : ||\n");
+    printf(separador, sizeof(separador));
+    printf("||              BURS : %d                    || \n", dataBurst);
+    printf(separador, sizeof(separador));
+    printf("||            PRIORITY : %d                  || \n", dataPriority);
+    printf(separador, sizeof(separador));
+
+    ///////////////////////////////////////
+    // CREA EL JSON Y LO ENVIA AL SERVER //
+    ///////////////////////////////////////
+    json_object *jobj = makeJson(dataBurst, dataPriority);
+
+    if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+    {
+        perror("strcpy");
+    }
+
+    //ACA LO ENVIA
+    //send(sock, message, strlen(message), 0) < 0
+    printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
+    sleep(2);
+    if (send(globalSocket->Ssock, temp_buff, strlen(temp_buff), 0) < 0)
+    {
+        perror("demodemoserverAddrserverAddr");
+    }
+
+    //Receive a reply from the server
+    if (recv(globalSocket->Ssock, server_reply, strlen(server_reply), 0) < 0)
+    {
+        puts("recv failed");
+    }
+    else
+    {
+        printf("|| EL SERVER ENVIO :        %s              || \n", server_reply);
+        printf(" ");
+        memset(server_reply, 0, sizeof(server_reply));
+    }
+}
+
+/////////////////////////////////////////////////////
+//                  READ THREAD                    //
+/////////////////////////////////////////////////////
+void *readFile(void *received_struct)
+{
+
+    pthread_t id;
+    FILE *fp;
+    char str[MAXCHAR];
+    static int save[2];
+    int i = 0;
+    int numSleep;
+    bool flagT = false;
+
+    char *pData = (char *)((struct my_Struct_File *)received_struct)->tittle;
+    fp = fopen(pData, "r");
+    if (fp == NULL)
+    {
+        printf("||==========================================||\n");
+        printf("||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
+        printf("-----||\n");
+        printf("||==========================================||\n");
+    }
+    while (fgets(str, MAXCHAR, fp) != NULL)
+    {
+
+        char *token = strtok(str, " ");
+
+        while (token != NULL && flagT)
+        {
+            //printf("\n DATOS %s", token); //printing each token
+            int vOut = atoi(token);
+            save[i] = vOut;
+            token = strtok(NULL, " ");
+            i++;
+
+            if (i == 2)
+            {
+                i = 0;
+                ///////////////////////////////////////////
+                //  DATOS STRUC PARA EL HILO DE LECTURA //
+                ///////////////////////////////////////////
+                struct my_Struct_Client *data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
+                data->burst = save[0];
+                data->priority = save[1];
+
+                ////////////////////////////////
+                //     SLEEP BEFORE READ      //
+                ////////////////////////////////
+                numSleep = randomData(8, 3);
+                printf("||==========================================|| \n");
+                printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+                printf("||==========================================|| \n");
+                sleep(numSleep);
+
+                ////////////////////////////////
+                //  LLAMADO A THREAD DE ENVIO //
+                ////////////////////////////////
+                pthread_create(&id, NULL, sendData, (void *)data);
+                pthread_join(id, NULL);
+            }
+        }
+        flagT = true;
+    }
+    fclose(fp);
+}
+
+/////////////////////////////////////////////////////
+//                AUTOMATIC THREAD                  //
+/////////////////////////////////////////////////////
+void *automatic(void *received_struct)
+{
+
+    pthread_t id;
+    int numSleep;
+
+    while (1)
+    {
+        ///////////////////////////////////////////
+        //  DATOS STRUC PARA EL HILO DE LECTURA //
+        ///////////////////////////////////////////
+        struct my_Struct_Client *data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
+        data->burst = randomData(5, 1);
+        data->priority = randomData(5, 1);
+
+        ////////////////////////////////
+        //     SLEEP BEFORE READ      //
+        ////////////////////////////////
+        numSleep = randomData(8, 3);
+        printf("||==========================================|| \n");
+        printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+        printf("||==========================================|| \n");
+        sleep(numSleep);
+
+        ////////////////////////////////
+        //  LLAMADO A THREAD DE ENVIO //
+        ////////////////////////////////
+        pthread_create(&id, NULL, sendData, (void *)data);
+        pthread_join(id, NULL);
+    }
+}
+
+/////////////////////////////////////////////////////
+//                     CLIENTE                     //
+/////////////////////////////////////////////////////
+void menuClient()
+{
+    pthread_t id;
+    pthread_t AutoMode;
+    int flagComunication = 0;
+    struct my_Struct_File *data;
+    int n, opcion;
+    char name[20];
+
+    ////////////////////////////////
+    //   CONSTRUCCION DEL MENU    //
+    ////////////////////////////////
+    char titulo[] = "||---------------MENU-CLIENTE---------------||\n";
+    char tituloMA[] = "||----------------MODO-MANUAL---------------||\n";
+    char tituloMM[] = "||-------------MODO-AUTOMATICO--------------||\n";
+    char makeRandom[] = "||--------GENERANDO-LOS-DATOS-RANDOMS-------||\n";
+    char searchFile[] = "||------INTRODUZCA-EL-NOMBRE-DEL-ARCHIVO----||\n";
+    char MM[] = "|| 1. MODO AUTOMATICO                       ||\n";
+    char MA[] = "|| 2. MODO MANUAL                           ||\n";
+    char exit[] = "|| 3. SALIR                                 ||\n";
+    char separador[] = "||==========================================||\n";
+    char optionN[] = "||------INTRODUZCA-UNA-OPCION-(1-3)---------||\n";
+
+    do
     {
         ////////////////////////////////
-        //   CONSTRUCCION DEL MENU    //
+        //       MENU PRINCIPAL       //
         ////////////////////////////////
-        char titulo[] = "\n ||---------------MENU-CLIENTE---------------||";
-        char tituloMM[] = "\n ||----------------MODO-MANUAL---------------||";
-        char tituloMA[] = "\n ||-------------MODO-AUTOMATICO--------------||";
-        char makeRandom[] = "\n ||--------GENERANDO-LOS-DATOS-RANDOMS-------||";
-        char searchFile[] = "\n ||------INTRODUZCA-EL-NOMBRE-DEL-ARCHIVO----||";
-        char MM[] = "\n || 1. MODO MANUAL                           ||";
-        char MA[] = "\n || 2. MODO AUTOMATICO                       ||";
-        char exit[] = "\n || 3. SALIR                                 ||";
-        char separador[] = "\n ||==========================================||";
-        char optionN[] = "\n ||------INTRODUZCA-UNA-OPCION-(1-3)---------||";
-        int n, opcion;
-        char name[20];
-        do
+        printf(separador, sizeof(separador));
+        printf(titulo, sizeof(titulo));
+        printf(separador, sizeof(separador));
+        printf(MM, sizeof(MM));
+        printf(MA, sizeof(MA));
+        printf(exit, sizeof(exit));
+        printf(separador, sizeof(separador));
+        printf(optionN, sizeof(optionN));
+        printf(separador, sizeof(separador));
+        printf("\n");
+        scanf("%d", &opcion);
+
+        ////////////////////////////////
+        ///          SWITCH           //
+        ////////////////////////////////
+        switch (opcion)
         {
+
+        ////////////////////////////////
+        //    MENU DE MODO MANUAL     //
+        ////////////////////////////////
+        case 1:
+            printf(separador, sizeof(separador));
+            printf(tituloMM, sizeof(tituloMM));
+            printf(separador, sizeof(separador));
+            printf(makeRandom, sizeof(makeRandom));
+            printf(separador, sizeof(separador));
             ////////////////////////////////
-            //       MENU PRINCIPAL       //
+            //       READ  THREAD         //
             ////////////////////////////////
+            pthread_create(&AutoMode, NULL, automatic,NULL);
+            pthread_join(AutoMode, NULL);
+            break;
+
+        //////////////////////////////////
+        //    MENU DE MODO AUTOMATICO  //
+        ////////////////////////////////
+        case 2:
             printf(separador, sizeof(separador));
-            printf(titulo, sizeof(titulo));
+            printf(tituloMA, sizeof(tituloMA));
             printf(separador, sizeof(separador));
-            printf(MM, sizeof(MM));
-            printf(MA, sizeof(MA));
-            printf(exit, sizeof(exit));
-            printf(separador, sizeof(separador));
-            printf(optionN, sizeof(optionN));
+            printf(searchFile, sizeof(searchFile));
             printf(separador, sizeof(separador));
             printf("\n");
-            scanf("%d", &opcion);
+            scanf("%s", name);
+
+            ///////////////////////////////////////////
+            //  DATOS STRUC PARA EL HILO DE LECTURA //
+            ///////////////////////////////////////////
+            data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
+            data->tittle = name;
 
             ////////////////////////////////
-            ///          SWITCH           //
+            //       READ  THREAD         //
             ////////////////////////////////
-            switch (opcion)
-            {
+            pthread_create(&id, NULL, readFile, (void *)data);
+            pthread_join(id, NULL);
+            break;
 
-            ////////////////////////////////
-            //    MENU DE MODO MANUAL     //
-            ////////////////////////////////
-            case 1:
-                printf(separador, sizeof(separador));
-                printf(tituloMM, sizeof(tituloMM));
-                printf(separador, sizeof(separador));
-                printf(makeRandom, sizeof(makeRandom));
-                printf(separador, sizeof(separador));
-                scanf("%d", &n);
-                break;
-
-            //////////////////////////////////
-            //    MENU DE MODO AUTOMATICO  //
-            ////////////////////////////////
-            case 2:
-                printf(separador, sizeof(separador));
-                printf(tituloMA, sizeof(tituloMA));
-                printf(separador, sizeof(separador));
-                printf(searchFile, sizeof(searchFile));
-                printf(separador, sizeof(separador));
-                printf("\n");
-                scanf("%s", &name);
-
-                ///////////////////////////////////////////
-                //OBTIENE LOS DATOS PARA CARGAR EN EL HILO//
-                ///////////////////////////////////////////
-
-                int *saveData = readFile(name); // ocupa un try catch
-                size_t len = sizeof(saveData) / sizeof(saveData[0]);
-
-                for (iThread = 0; iThread < len+1; iThread+=2)
-                {
-
-                    ////////////////////////////////////////
-                    //     ENVIADO LOS DATOS AL HILO      //
-                    ////////////////////////////////////////
-
-                    pthread_create(&id, NULL, foo, (void *)saveData);
-                    sleep(2);
-
-                    ////////////////////////////////////////
-                    //     RESIVIENDO LOS DATOS DEL HILO  //
-                    ///////////////////////////////////////
-                    int *ptr;
-                    pthread_join(id, (void **)&ptr);
-                    printf(separador, sizeof(separador));
-                    printf("\n");
-                    printf("\n    ENVIANDO LOS VALORES AL SERVER: ");
-                    int *answer_beeing_an_int_arr = ptr;
-                    int dataBurst = ((int *)ptr)[iThread];
-                    int dataPriority = ((int *)ptr)[iThread+1];
-                    printf("\n    BURST :  %d", dataBurst);
-                    printf("\n    PRIORITY :  %d", dataPriority );
-                    printf("\n");
-                    printf(separador, sizeof(separador));
-                    printf("\n");
-                    ///////////////////////////////////////////
-
-                    ////////////////////////////////////////
-                    //    ENVIANDADO DATOS AL SERVER     //
-                    ///////////////////////////////////////
-
-                    // //Send some data
-                    // if (send(sock, message, strlen(message), 0) < 0)
-                    // {
-                    //     puts("Send failed");
-                    //     return 1;
-                    // }
-
-                    ///////////////////////////////////////
-                    // CREA EL JSON Y LO ENVIA AL SERVER //
-                    ///////////////////////////////////////
-
-                    json_object *jobj = makeJson( dataBurst , dataPriority);
-                    char temp_buff[2000];
-
-                    if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
-                    {
-                        perror("strcpy");
-                        return EXIT_FAILURE;
-                    }
-
-                    //ACA LO ENVIA
-                    //send(sock, message, strlen(message), 0) < 0
-                    if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
-                    {
-                        perror("demodemoserverAddrserverAddr");
-                        return EXIT_FAILURE;
-                    }
-
-                    //Receive a reply from the server
-                    if (recv(sock, server_reply, 2000, 0) < 0)
-                    {
-                        puts("recv failed");
-                        break;
-                    }
-
-                    puts("EL SERVER ENVIO :");
-                    puts(server_reply);
-                    memset(server_reply, 0, sizeof(server_reply));
-                }
-
-                break;
-
-            ////////////////////////////////
-            //           SALIDA           //
-            ////////////////////////////////
-            case 3:
-                flagComunication++; //ROMPE AMBOS WHILES Y CIERRA EL SOCKET
-                break;
-            }
-        } while (flagComunication == 0);
-
-    } //FIN DE CLIENTE
-    close(sock);
+        ////////////////////////////////
+        //           SALIDA           //
+        ////////////////////////////////
+        case 3:
+            flagComunication++; //ROMPE AMBOS WHILES Y CIERRA EL SOCKET
+            close(globalSocket->Ssock);
+            break;
+        }
+    } while (flagComunication == 0);
 }
 
 int main(int argc, char *argv[])
 {
-    client();
+    socketClient();
+    menuClient();
     return 0;
 }
