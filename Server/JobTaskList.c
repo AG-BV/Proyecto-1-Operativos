@@ -40,6 +40,17 @@ int insert(int pID, int pPrority, int pBurst)
     return 1;
 }
 
+void printJobTaskList()
+{
+    current = head;
+    while (current != NULL)
+    {
+        printf("Burst: %d", current->burst);
+        printf("->");
+        current = current->next;
+    }
+}
+
 struct node *getFirstRM()
 {
     current = head;

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <unistd.h>    
+#include <unistd.h>
 #include <pthread.h>
 #include <json-c/json.h>
 #include "JobTaskList.c"
@@ -14,6 +14,7 @@ int GlobalID = 0;
 struct arguments
 {
     int id;
+    char *name;
     int priority;
     int burst;
 };
@@ -22,6 +23,7 @@ void *jobSchedulerTask(void *pArgs)
 {
     struct arguments *args = (struct arguments *)pArgs;
     insert(args->id, args->priority, args->burst);
+    printJobTaskList();
 }
 
 void *connection_handler(void *socket_desc)
@@ -31,6 +33,7 @@ void *connection_handler(void *socket_desc)
     struct json_object *burst;
     struct json_object *priority;
     size_t n_friends;
+    char *nameT;
     int burstT;
     int priorityT;
 
@@ -40,10 +43,7 @@ void *connection_handler(void *socket_desc)
     int read_size;
     char *message;
     char client_message[2000];
-
-    message = " Greetings! I am your connection handler\n Now type something and i shall repeat what you type \n";
-    write(sock, message, strlen(message));
-
+    char msg;
 
     while ((read_size = recv(sock, client_message, 2000, 0)) > 0)
     {
@@ -52,14 +52,18 @@ void *connection_handler(void *socket_desc)
         json_object_object_get_ex(parsed_json, "burst", &burst);
         json_object_object_get_ex(parsed_json, "priority", &priority);
 
+        nameT = (char *)json_object_get_string(name);
         burstT = json_object_get_int(burst);
         priorityT = json_object_get_int(priority);
 
+        printf("Name: %c\n", *nameT);
         printf("BURST: %d\n", burstT);
         printf("PRIORITY: %d\n", priorityT);
 
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
-        args->id = rand();
+        GlobalID = GlobalID + 1;
+        args->id = GlobalID;
+        args->name = nameT;
         args->priority = priorityT;
         args->burst = burstT;
 
@@ -67,8 +71,8 @@ void *connection_handler(void *socket_desc)
         puts(client_message);
 
         pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
-
-        write(sock, client_message, strlen(client_message));
+        char outMessage[] = {'0' + args->id, '\0'};
+        write(sock, outMessage, strlen(outMessage));
         memset(client_message, 0, sizeof(client_message));
     }
 
