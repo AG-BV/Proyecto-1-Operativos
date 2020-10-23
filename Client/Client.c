@@ -8,6 +8,7 @@
 #include <sys/socket.h>  //socket
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
+#include <ctype.h>
 
 /////////////////////////////////////////////////////
 //                     STRUCS                      //
