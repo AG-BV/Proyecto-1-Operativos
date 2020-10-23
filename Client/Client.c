@@ -1,3 +1,4 @@
+//DONE
 #include <pthread.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -216,7 +217,7 @@ void *readFile(void *received_struct)
     struct my_Struct_Client *data;
 
     fp = fopen(pData, "r");
-  
+
     printf("||==========================================|| \n");
     printf("||       HILO DE LECTURA DE ARCHIVO         || \n");
     printf("||==========================================|| \n");
@@ -339,20 +340,52 @@ void menuClient()
 
     do
     {
-        ////////////////////////////////
-        //       MENU PRINCIPAL       //
-        ////////////////////////////////
-        printf(separador, sizeof(separador));
-        printf(titulo, sizeof(titulo));
-        printf(separador, sizeof(separador));
-        printf(MM, sizeof(MM));
-        printf(MA, sizeof(MA));
-        printf(exit, sizeof(exit));
-        printf(separador, sizeof(separador));
-        printf(optionN, sizeof(optionN));
-        printf(separador, sizeof(separador));
-        printf("\n");
-        scanf("%d", &opcion);
+        int menuFlag = 1;
+
+        do
+        {
+            ////////////////////////////////
+            //       MENU PRINCIPAL       //
+            ////////////////////////////////
+            printf(separador, sizeof(separador));
+            printf(titulo, sizeof(titulo));
+            printf(separador, sizeof(separador));
+            printf(MM, sizeof(MM));
+            printf(MA, sizeof(MA));
+            printf(exit, sizeof(exit));
+            printf(separador, sizeof(separador));
+            printf(optionN, sizeof(optionN));
+            printf(separador, sizeof(separador));
+            printf("\n");
+
+            ////////////////////////////////
+            //   VALIDA QUE SEA UN NUMERO //
+            ////////////////////////////////
+            if (scanf("%d", &opcion) == 0)
+            {
+                // Eliminamos todos los caracteres hasta el primer espacio o salto de linea
+                for (int c = getchar(); c != EOF && c != ' ' && c != '\n'; c = getchar())
+                    ;
+                printf("||==========================================|| \n");
+                printf("||  ERROR SELECCIONE UN NUMERO DEL 1 AL 3   || \n");
+                printf("||==========================================|| \n");
+            }
+            /////////////////////////////////////////////
+            //  VALIDA QUE EL NUMERO NO SEA MAYOR A 3  //
+            ////////////////////////////////////////////
+            else if (opcion > 3)
+            {
+                printf("||==========================================|| \n");
+                printf("||  ERROR SELECCIONE UN NUMERO DEL 1 AL 3   || \n");
+                printf("||==========================================|| \n");
+            }
+            else
+            {
+                menuFlag = 0;
+            }
+        } while (menuFlag);
+
+        menuFlag = 1;
 
         ////////////////////////////////
         ///          SWITCH           //
@@ -398,6 +431,10 @@ void menuClient()
                     //  DATOS STRUC PARA EL HILO DE LECTURA //
                     ///////////////////////////////////////////
                     data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
+
+                    ////////////////////////////////
+                    //   VALIDA QUE SEA UN CHAR   //
+                    ////////////////////////////////
                     if (isalpha(*name))
                     {
                         data->tittle = name;
@@ -412,6 +449,9 @@ void menuClient()
                 } while (errorName);
                 errorName = 1;
 
+                ///////////////////////////////////////////
+                //   VALIDA QUE SEA UN ARCHIVO EXISTENTE //
+                ///////////////////////////////////////////
                 if (valFile(name) == 1)
                 {
                     ////////////////////////////////
@@ -421,6 +461,7 @@ void menuClient()
                     pthread_join(id, NULL);
                     while (1)
                     {
+                        // ESPERA A LEER LOS PROCESOS DEL ARCHIVO
                         if (idGlobalProcess == lenFile - 1)
                         {
                             errorFile = 0;
