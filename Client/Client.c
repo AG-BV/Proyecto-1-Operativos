@@ -14,6 +14,7 @@
 struct my_Struct_Socket *globalSocket;
 int idGlobalProcess;
 int lenFile;
+int errorFile = 1;
 int errorName = 1;
 /////////////////////////////////////////////////////
 struct my_Struct_File
@@ -43,6 +44,27 @@ int randomData(int pUpper, int pLower)
 
     int num = (rand() % (pUpper - pLower + 1)) + pLower;
     return num;
+}
+
+/////////////////////////////////////////////////////
+//                  VALIDATE FILE                  //
+/////////////////////////////////////////////////////
+int valFile(char *pData)
+{
+    FILE *fp;
+    fp = fopen(pData, "r");
+    if (fp == NULL)
+    {
+        printf("||==========================================||\n");
+        printf("||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
+        printf("-----||\n");
+        printf("||==========================================||\n");
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /////////////////////////////////////////////////////
@@ -194,14 +216,7 @@ void *readFile(void *received_struct)
     struct my_Struct_Client *data;
 
     fp = fopen(pData, "r");
-    if (fp == NULL)
-    {
-        printf("||==========================================||\n");
-        printf("||---NO--SE--PUDO--ABRIR--EL--ARCHIVO-%s", pData);
-        printf("-----||\n");
-        printf("||==========================================||\n");
-    }
-
+  
     printf("||==========================================|| \n");
     printf("||       HILO DE LECTURA DE ARCHIVO         || \n");
     printf("||==========================================|| \n");
@@ -365,27 +380,53 @@ void menuClient()
         //    MENU DE MODO AUTOMATICO  //
         ////////////////////////////////
         case 2:
-
             do
             {
-                printf(separador, sizeof(separador));
-                printf(tituloMA, sizeof(tituloMA));
-                printf(separador, sizeof(separador));
-                printf(searchFile, sizeof(searchFile));
-                printf(separador, sizeof(separador));
-                printf("\n");
-                idGlobalProcess = 0;
-                lenFile = 0;
-                scanf("%s", name);
-
-                ///////////////////////////////////////////
-                //  DATOS STRUC PARA EL HILO DE LECTURA //
-                ///////////////////////////////////////////
-                data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
-                if (isalpha(*name))
+                do
                 {
-                    data->tittle = name;
-                    errorName = 0;
+                    printf(separador, sizeof(separador));
+                    printf(tituloMA, sizeof(tituloMA));
+                    printf(separador, sizeof(separador));
+                    printf(searchFile, sizeof(searchFile));
+                    printf(separador, sizeof(separador));
+                    printf("\n");
+                    idGlobalProcess = 0;
+                    lenFile = 0;
+                    scanf("%s", name);
+
+                    ///////////////////////////////////////////
+                    //  DATOS STRUC PARA EL HILO DE LECTURA //
+                    ///////////////////////////////////////////
+                    data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
+                    if (isalpha(*name))
+                    {
+                        data->tittle = name;
+                        errorName = 0;
+                    }
+                    else
+                    {
+                        printf("||==========================================|| \n");
+                        printf("||            ERRO INPUT TYPE               || \n");
+                        printf("||==========================================|| \n");
+                    }
+                } while (errorName);
+                errorName = 1;
+
+                if (valFile(name) == 1)
+                {
+                    ////////////////////////////////
+                    //       READ  THREAD         //
+                    ////////////////////////////////
+                    pthread_create(&id, NULL, readFile, (void *)data);
+                    pthread_join(id, NULL);
+                    while (1)
+                    {
+                        if (idGlobalProcess == lenFile - 1)
+                        {
+                            errorFile = 0;
+                            break;
+                        }
+                    }
                 }
                 else
                 {
@@ -393,21 +434,8 @@ void menuClient()
                     printf("||    ERRO EN LA SELECCION DEL ARCHIVO      || \n");
                     printf("||==========================================|| \n");
                 }
-            } while (errorName);
-            errorName = 1;
-
-            ////////////////////////////////
-            //       READ  THREAD         //
-            ////////////////////////////////
-            pthread_create(&id, NULL, readFile, (void *)data);
-            pthread_join(id, NULL);
-            while (1)
-            {
-                if (idGlobalProcess == lenFile - 1)
-                {
-                    break;
-                }
-            }
+            } while (errorFile);
+            errorFile = 1;
             break;
 
         ////////////////////////////////
