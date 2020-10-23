@@ -11,6 +11,22 @@
 pthread_t jobScheduler;
 int GlobalID = 0;
 
+/////////////////////////////////////////////////////
+//                 CREA UN JSON                    //
+/////////////////////////////////////////////////////
+json_object *makeJson(int pData1)
+{
+    /*Creating a json object*/
+    json_object *jobj = json_object_new_object();
+    /*Creating a json string*/
+    json_object *jstring = json_object_new_string("ID");
+    /*Creating a json integer*/
+    json_object *jint1 = json_object_new_int(pData1);
+    json_object_object_add(jobj, "id", jstring);
+    json_object_object_add(jobj, "idN", jint1);
+    return jobj;
+}
+
 struct arguments
 {
     int id;
@@ -32,6 +48,10 @@ void *connection_handler(void *socket_desc)
     struct json_object *name;
     struct json_object *burst;
     struct json_object *priority;
+
+    json_object *jobj;
+    char temp_buff[200];
+
     size_t n_friends;
     char *nameT;
     int burstT;
@@ -71,9 +91,22 @@ void *connection_handler(void *socket_desc)
         puts(client_message);
 
         pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
-        char outMessage[] = {'0' + args->id, '\0'};
-        write(sock, outMessage, strlen(outMessage));
-        memset(client_message, 0, sizeof(client_message));
+        jobj = makeJson(args->id);
+
+
+        if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
+        {
+            perror("strcpy");
+        }
+
+        //ACA LO ENVIA
+        //send(sock, message, strlen(message), 0) < 0
+        printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
+        sleep(2);
+        if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
+        {
+            perror("demodemoserverAddrserverAddr");
+        }
     }
 
     if (read_size == 0)

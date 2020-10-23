@@ -1,6 +1,3 @@
-/*
-	C ECHO client example using sockets
-*/
 #include <pthread.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -10,13 +7,13 @@
 #include <sys/socket.h>  //socket
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
-#define MAXCHAR 500
+
 
 /////////////////////////////////////////////////////
 //                     STRUCS                      //
 /////////////////////////////////////////////////////
 struct my_Struct_Socket *globalSocket;
-
+/////////////////////////////////////////////////////
 struct my_Struct_File
 {
     char *tittle;
@@ -70,7 +67,7 @@ json_object *makeJson(int pData1, int pData2)
 void socketClient()
 {
     struct sockaddr_in server;
-    char strucIP[] = "127.0.0.1";
+    char strucIP[] = "192.168.100.7";
     int strucSocket = 8888;
     int sock;
 
@@ -106,6 +103,8 @@ void socketClient()
     globalSocket->Ssock = sock;
 }
 
+
+
 /////////////////////////////////////////////////////
 //                SEND   THREAD                    //
 /////////////////////////////////////////////////////
@@ -114,12 +113,17 @@ void *sendData(void *received_struct)
     int dataBurst = ((struct my_Struct_Client *)received_struct)->burst;
     int dataPriority = ((struct my_Struct_Client *)received_struct)->priority;
 
-    char temp_buff[20];
-    char server_reply[20];
+    char temp_buff[2000];
+    char server_reply[2000];
     char separador[] = "||==========================================|| \n";
 
+    struct json_object *idP;
+    struct json_object *idName;
+    struct json_object *idN;
+    json_object *jobj;
+
     printf(separador, sizeof(separador));
-    printf("||HILO DE ENVIO,LOS DATOS DEL PROCESO SON : ||\n");
+    printf("|| HILO DE ENVIO,LOS DATOS DEL PROCESO SON: ||\n");
     printf(separador, sizeof(separador));
     printf("||              BURS : %d                    || \n", dataBurst);
     printf(separador, sizeof(separador));
@@ -129,7 +133,7 @@ void *sendData(void *received_struct)
     ///////////////////////////////////////
     // CREA EL JSON Y LO ENVIA AL SERVER //
     ///////////////////////////////////////
-    json_object *jobj = makeJson(dataBurst, dataPriority);
+    jobj = makeJson(dataBurst, dataPriority);
 
     if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
     {
@@ -137,7 +141,6 @@ void *sendData(void *received_struct)
     }
 
     //ACA LO ENVIA
-    //send(sock, message, strlen(message), 0) < 0
     printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
     sleep(2);
     if (send(globalSocket->Ssock, temp_buff, strlen(temp_buff), 0) < 0)
@@ -145,16 +148,16 @@ void *sendData(void *received_struct)
         perror("demodemoserverAddrserverAddr");
     }
 
-    //Receive a reply from the server
-    if (recv(globalSocket->Ssock, server_reply, strlen(server_reply), 0) < 0)
+    //ESCUCHA EL SERVER
+    if (recv(globalSocket->Ssock, server_reply, 2000, 0) > 0)
     {
-        puts("recv failed");
-    }
-    else
-    {
-        printf("|| EL SERVER ENVIO :        %s              || \n", server_reply);
-        printf(" ");
-        memset(server_reply, 0, sizeof(server_reply));
+        idP = json_tokener_parse(server_reply);
+        json_object_object_get_ex(idP, "id", &idName);
+        json_object_object_get_ex(idP, "idN", &idN);
+
+        char *nameT = (char *)json_object_get_string(idName);
+        int id = json_object_get_int(idN);
+        printf("|| EL ID DEL PROCESO ES :        %d          || \n", id);
     }
 }
 
@@ -166,13 +169,17 @@ void *readFile(void *received_struct)
 
     pthread_t id;
     FILE *fp;
+    int MAXCHAR = 500;
     char str[MAXCHAR];
     static int save[2];
     int i = 0;
     int numSleep;
     bool flagT = false;
-
+    char *token;
+    int vOut;
     char *pData = (char *)((struct my_Struct_File *)received_struct)->tittle;
+    struct my_Struct_Client *data;
+
     fp = fopen(pData, "r");
     if (fp == NULL)
     {
@@ -184,12 +191,12 @@ void *readFile(void *received_struct)
     while (fgets(str, MAXCHAR, fp) != NULL)
     {
 
-        char *token = strtok(str, " ");
+        token = strtok(str, " ");
 
         while (token != NULL && flagT)
         {
             //printf("\n DATOS %s", token); //printing each token
-            int vOut = atoi(token);
+            vOut = atoi(token);
             save[i] = vOut;
             token = strtok(NULL, " ");
             i++;
@@ -200,7 +207,7 @@ void *readFile(void *received_struct)
                 ///////////////////////////////////////////
                 //  DATOS STRUC PARA EL HILO DE LECTURA //
                 ///////////////////////////////////////////
-                struct my_Struct_Client *data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
+                data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
                 data->burst = save[0];
                 data->priority = save[1];
 
@@ -223,6 +230,7 @@ void *readFile(void *received_struct)
         flagT = true;
     }
     fclose(fp);
+
 }
 
 /////////////////////////////////////////////////////
@@ -233,13 +241,14 @@ void *automatic(void *received_struct)
 
     pthread_t id;
     int numSleep;
+    struct my_Struct_Client *data;
 
     while (1)
     {
         ///////////////////////////////////////////
         //  DATOS STRUC PARA EL HILO DE LECTURA //
         ///////////////////////////////////////////
-        struct my_Struct_Client *data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
+        data = (struct my_Struct_Client *)malloc(sizeof(struct my_Struct_Client));
         data->burst = randomData(5, 1);
         data->priority = randomData(5, 1);
 
@@ -321,7 +330,7 @@ void menuClient()
             ////////////////////////////////
             //       READ  THREAD         //
             ////////////////////////////////
-            pthread_create(&AutoMode, NULL, automatic,NULL);
+            pthread_create(&AutoMode, NULL, automatic, NULL);
             pthread_join(AutoMode, NULL);
             break;
 
