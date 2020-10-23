@@ -8,11 +8,13 @@
 #include <arpa/inet.h>   //inet_addr
 #include <json-c/json.h> //JSON
 
-
 /////////////////////////////////////////////////////
 //                     STRUCS                      //
 /////////////////////////////////////////////////////
 struct my_Struct_Socket *globalSocket;
+int idGlobalProcess;
+int lenFile;
+int errorName = 1;
 /////////////////////////////////////////////////////
 struct my_Struct_File
 {
@@ -103,8 +105,6 @@ void socketClient()
     globalSocket->Ssock = sock;
 }
 
-
-
 /////////////////////////////////////////////////////
 //                SEND   THREAD                    //
 /////////////////////////////////////////////////////
@@ -121,7 +121,9 @@ void *sendData(void *received_struct)
     struct json_object *idName;
     struct json_object *idN;
     json_object *jobj;
+    int read_size;
 
+    // COPIA DE SOCK PARA LA ESCUCHA DEL HILO//
     printf(separador, sizeof(separador));
     printf("|| HILO DE ENVIO,LOS DATOS DEL PROCESO SON: ||\n");
     printf(separador, sizeof(separador));
@@ -149,7 +151,7 @@ void *sendData(void *received_struct)
     }
 
     //ESCUCHA EL SERVER
-    if (recv(globalSocket->Ssock, server_reply, 2000, 0) > 0)
+    while (read_size = recv(globalSocket->Ssock, server_reply, 2000, 0) > 0)
     {
         idP = json_tokener_parse(server_reply);
         json_object_object_get_ex(idP, "id", &idName);
@@ -158,7 +160,17 @@ void *sendData(void *received_struct)
         char *nameT = (char *)json_object_get_string(idName);
         int id = json_object_get_int(idN);
         printf("|| EL ID DEL PROCESO ES :        %d          || \n", id);
+
+        if (id > 0)
+        {
+            idGlobalProcess++;
+            break;
+        }
     }
+    printf(separador, sizeof(separador));
+    printf("|| BORRANDO HILO DEL PROCESO %d DEL ARCHIVO  || \n", idGlobalProcess);
+    printf(separador, sizeof(separador));
+    pthread_cancel(pthread_self());
 }
 
 /////////////////////////////////////////////////////
@@ -169,6 +181,7 @@ void *readFile(void *received_struct)
 
     pthread_t id;
     FILE *fp;
+    bool falgFirst = false;
     int MAXCHAR = 500;
     char str[MAXCHAR];
     static int save[2];
@@ -188,10 +201,16 @@ void *readFile(void *received_struct)
         printf("-----||\n");
         printf("||==========================================||\n");
     }
+
+    printf("||==========================================|| \n");
+    printf("||       HILO DE LECTURA DE ARCHIVO         || \n");
+    printf("||==========================================|| \n");
+
     while (fgets(str, MAXCHAR, fp) != NULL)
     {
 
         token = strtok(str, " ");
+        lenFile++;
 
         while (token != NULL && flagT)
         {
@@ -214,23 +233,31 @@ void *readFile(void *received_struct)
                 ////////////////////////////////
                 //     SLEEP BEFORE READ      //
                 ////////////////////////////////
-                numSleep = randomData(8, 3);
-                printf("||==========================================|| \n");
-                printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
-                printf("||==========================================|| \n");
-                sleep(numSleep);
+                if (falgFirst)
+                {
+                    numSleep = randomData(8, 3);
+                    printf("||==========================================|| \n");
+                    printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+                    printf("||==========================================|| \n");
+                    sleep(numSleep);
+                }
 
                 ////////////////////////////////
                 //  LLAMADO A THREAD DE ENVIO //
                 ////////////////////////////////
                 pthread_create(&id, NULL, sendData, (void *)data);
-                pthread_join(id, NULL);
+                //pthread_join(id, NULL);
+                falgFirst = true;
             }
         }
         flagT = true;
     }
     fclose(fp);
 
+    printf("||==========================================|| \n");
+    printf("||  BORRANDO HILO DE LECTURA DE ARCHIVO     || \n");
+    printf("||==========================================|| \n");
+    pthread_cancel(pthread_self());
 }
 
 /////////////////////////////////////////////////////
@@ -338,25 +365,49 @@ void menuClient()
         //    MENU DE MODO AUTOMATICO  //
         ////////////////////////////////
         case 2:
-            printf(separador, sizeof(separador));
-            printf(tituloMA, sizeof(tituloMA));
-            printf(separador, sizeof(separador));
-            printf(searchFile, sizeof(searchFile));
-            printf(separador, sizeof(separador));
-            printf("\n");
-            scanf("%s", name);
 
-            ///////////////////////////////////////////
-            //  DATOS STRUC PARA EL HILO DE LECTURA //
-            ///////////////////////////////////////////
-            data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
-            data->tittle = name;
+            do
+            {
+                printf(separador, sizeof(separador));
+                printf(tituloMA, sizeof(tituloMA));
+                printf(separador, sizeof(separador));
+                printf(searchFile, sizeof(searchFile));
+                printf(separador, sizeof(separador));
+                printf("\n");
+                idGlobalProcess = 0;
+                lenFile = 0;
+                scanf("%s", name);
+
+                ///////////////////////////////////////////
+                //  DATOS STRUC PARA EL HILO DE LECTURA //
+                ///////////////////////////////////////////
+                data = (struct my_Struct_File *)malloc(sizeof(struct my_Struct_File));
+                if (isalpha(*name))
+                {
+                    data->tittle = name;
+                    errorName = 0;
+                }
+                else
+                {
+                    printf("||==========================================|| \n");
+                    printf("||    ERRO EN LA SELECCION DEL ARCHIVO      || \n");
+                    printf("||==========================================|| \n");
+                }
+            } while (errorName);
+            errorName = 1;
 
             ////////////////////////////////
             //       READ  THREAD         //
             ////////////////////////////////
             pthread_create(&id, NULL, readFile, (void *)data);
             pthread_join(id, NULL);
+            while (1)
+            {
+                if (idGlobalProcess == lenFile - 1)
+                {
+                    break;
+                }
+            }
             break;
 
         ////////////////////////////////
