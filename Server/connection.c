@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <json-c/json.h>
-#include "JobTaskList.c"
 
 pthread_t jobScheduler;
 int GlobalID = 0;
