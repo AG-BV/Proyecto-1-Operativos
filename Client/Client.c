@@ -183,6 +183,7 @@ void *sendData(void *received_struct)
 
         char *nameT = (char *)json_object_get_string(idName);
         int id = json_object_get_int(idN);
+        printf(separador, sizeof(separador));
         printf("|| EL ID DEL PROCESO ES :        %d          || \n", id);
 
         if (id > 0)
@@ -192,7 +193,7 @@ void *sendData(void *received_struct)
         }
     }
     printf(separador, sizeof(separador));
-    printf("|| BORRANDO HILO DEL PROCESO %d DEL ARCHIVO  || \n", idGlobalProcess);
+    printf("|| BORRANDO HILO DEL PROCESO %d              || \n", idGlobalProcess);
     printf(separador, sizeof(separador));
     pthread_cancel(pthread_self());
 }
@@ -286,6 +287,7 @@ void *automatic(void *received_struct)
     pthread_t id;
     int numSleep;
     struct my_Struct_Client *data;
+    int flag = 0;
 
     while (1)
     {
@@ -299,17 +301,20 @@ void *automatic(void *received_struct)
         ////////////////////////////////
         //     SLEEP BEFORE READ      //
         ////////////////////////////////
-        numSleep = randomData(8, 3);
-        printf("||==========================================|| \n");
-        printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
-        printf("||==========================================|| \n");
-        sleep(numSleep);
+        if (flag == 1)
+        {
+            numSleep = randomData(8, 3);
+            printf("||==========================================|| \n");
+            printf("|| ESPERA %d SEGUNDOS ANTES DE OTRO PROCESO  || \n", numSleep);
+            printf("||==========================================|| \n");
+            sleep(numSleep);
+        }
+        flag = 1;
 
         ////////////////////////////////
         //  LLAMADO A THREAD DE ENVIO //
         ////////////////////////////////
         pthread_create(&id, NULL, sendData, (void *)data);
-        pthread_join(id, NULL);
     }
 }
 
@@ -406,6 +411,8 @@ void menuClient()
             ////////////////////////////////
             //       READ  THREAD         //
             ////////////////////////////////
+            idGlobalProcess = 0;
+            lenFile = 0;
             pthread_create(&AutoMode, NULL, automatic, NULL);
             pthread_join(AutoMode, NULL);
             break;
@@ -424,8 +431,6 @@ void menuClient()
                     printf(searchFile, sizeof(searchFile));
                     printf(separador, sizeof(separador));
                     printf("\n");
-                    idGlobalProcess = 0;
-                    lenFile = 0;
                     scanf("%s", name);
 
                     ///////////////////////////////////////////
@@ -458,6 +463,8 @@ void menuClient()
                     ////////////////////////////////
                     //       READ  THREAD         //
                     ////////////////////////////////
+                    idGlobalProcess = 0;
+                    lenFile = 0;
                     pthread_create(&id, NULL, readFile, (void *)data);
                     pthread_join(id, NULL);
                     while (1)
