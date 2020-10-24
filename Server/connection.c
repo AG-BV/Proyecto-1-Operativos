@@ -174,7 +174,7 @@ void *connection_handler(void *socket_desc)
         //ACA LO ENVIA
         //send(sock, message, strlen(message), 0) < 0
         // printf("|| ESPERA 2 SEGUNDOS ANTES HACER EL ENVIO : ||\n");
-        sleep(2);
+
         if (send(sock, temp_buff, strlen(temp_buff), 0) < 0)
         {
             perror("demodemoserverAddrserverAddr");
