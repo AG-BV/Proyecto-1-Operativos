@@ -1,0 +1,61 @@
+
+FIFO:
+
+P1 - P2  - P3
+
+
+
+      P1       
+  |----3-----|---P2---|----------------------
+  0          5        8
+    
+
+
+    TAT   WT
+P1   5    0
+P2   8    5
+
+P1                p2
+LLENADA = 0      LLegada
+TI 0             TI
+TF               TF 3          
+
+Tiempo
+
+
+
+
+
+
+flagOcupado
+
+ p1 - p2
+wt +1
+cont = 0  
+
+
+
+struct node
+{
+    int id;
+    int burst;
+    int priority;
+    int  2;
+    struct node *next;
+};
+                  
+//primero mayor 
+tasklist = [p1] - [p2] - [p3] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p2] - [p1] - [p3] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p3] - [p1] - [p2] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p4] - [p1] - [p2] - [p3] - [p5] -  [p6] - [p7]
+tasklist = [p5] - [p1] - [p2] - [p3] - [p4] -  [p6] - [p7]
+tasklist = [p6] - [p1] - [p2] - [p3] - [p4] -  [p5] - [p7]
+tasklist = [p7] - [p1] - [p2] - [p3] - [p4] -  [p5] - [p6]
+
+
+
+       P1      C 
+  |----3--4-|-|---------------------------
+  0         5 6      
+    

@@ -8,10 +8,12 @@
 #include <json-c/json.h>
 
 pthread_t jobScheduler;
+pthread_t CPUScheduler;
 int GlobalID = 0;
+int countBurst = 0;
+int timeSchedule = 0;
 struct node *headTaskList = NULL;
-// struct node *headThreads = NULL;
-
+struct node *headFinishList = NULL;
 
 struct arguments
 {
@@ -26,6 +28,7 @@ struct node
     int id;
     int burst;
     int priority;
+    int wt;
     struct node *next;
 };
 
@@ -37,6 +40,7 @@ int insert(int pID, int pPrority, int pBurst)
 
     //link->key = key;
     link->id = pID;
+    link->wt = 0;
     link->priority = pPrority;
     link->burst = pBurst;
 
@@ -59,10 +63,50 @@ int insert(int pID, int pPrority, int pBurst)
     return 1;
 }
 
+int insertF(struct node *pCurrent)
+{
+    //create a link
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+
+    //point it to old first node
+    if (headFinishList == NULL)
+    {
+        headFinishList = pCurrent;
+        return 1;
+    }
+    current = headFinishList;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = pCurrent;
+    current = NULL;
+    free(current);
+    return 1;
+}
+
 void printJobTaskList()
 {
     struct node *current = (struct node *)malloc(sizeof(struct node));
     current = headTaskList;
+    if (current == NULL)
+    {
+        printf("||Cola de tareas: ");
+        printf("Lista Vacia");
+    }
+    while (current != NULL)
+    {
+        printf("Burst: %d", current->burst);
+        printf("->");
+        current = current->next;
+    }
+    printf("\n");
+}
+
+void printJobTaskListF()
+{
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+    current = headFinishList;
     if (current == NULL)
     {
         printf("||Cola de tareas: ");
@@ -85,15 +129,13 @@ struct node *getFirstRM()
     return current;
 }
 
-
-/////////////////////////////////////////////////////
-//                 CREA UN JSON                    //
-/////////////////////////////////////////////////////
-
 void connectionPrintJobTaskList()
 {
     printJobTaskList(headTaskList);
 }
+/////////////////////////////////////////////////////
+//                 CREA UN JSON                    //
+/////////////////////////////////////////////////////
 
 json_object *makeJson(int pData1)
 {
@@ -107,7 +149,6 @@ json_object *makeJson(int pData1)
     json_object_object_add(jobj, "idN", jint1);
     return jobj;
 }
-
 
 void *jobSchedulerTask(void *pArgs)
 {
@@ -149,10 +190,6 @@ void *connection_handler(void *socket_desc)
         burstT = json_object_get_int(burst);
         priorityT = json_object_get_int(priority);
 
-        // printf("Name: %c\n", *nameT);
-        // printf("BURST: %d\n", burstT);
-        // printf("PRIORITY: %d\n", priorityT);
-
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
         GlobalID = GlobalID + 1;
         args->id = GlobalID;
@@ -160,10 +197,8 @@ void *connection_handler(void *socket_desc)
         args->priority = priorityT;
         args->burst = burstT;
 
-        // puts("EL CLIENTE ENVIO :");
-        // puts(client_message);
-
         pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
+
         jobj = makeJson(args->id);
 
         if (strcpy(temp_buff, json_object_to_json_string(jobj)) == NULL)
@@ -197,7 +232,46 @@ void *connection_handler(void *socket_desc)
     return 0;
 }
 
-int connection()
+/////////////////////////////////////////////////////
+//                    ALG FIFO                    //
+////////////////////////////////////////////////////
+void *algorithmFIFO(void *unused)
+{
+    while (1)
+    {
+        if (headTaskList == NULL)
+        {
+            // countBurst = 0;
+            timeSchedule = timeSchedule + 1;
+        }
+        else if (countBurst == headTaskList->burst)
+        {
+            countBurst = 0;
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            current = (struct node *)getFirstRM();
+            insertF(current);
+            printJobTaskListF();
+            printf("AQUIIII");
+        }
+        else
+        {
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            countBurst = countBurst + 1;
+            timeSchedule = timeSchedule + 1;
+            current = headTaskList->next;
+            while (current != NULL)
+            {
+                current->wt = current->wt + 1;
+                current = current->next;
+            }
+            current = NULL;
+            free(current);
+            sleep(1);
+        }
+    }
+}
+
+int connection(int pParameter)
 {
     int socket_desc, client_sock, c, *new_sock;
     struct sockaddr_in server, client;
@@ -224,6 +298,26 @@ int connection()
 
     // puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
+
+    switch (pParameter)
+    {
+    case 1:
+        /* code */
+        pthread_create(&CPUScheduler, NULL, &algorithmFIFO, NULL);
+        break;
+
+    case 2:
+        /* code */
+        break;
+
+    case 3:
+        /* code */
+        break;
+
+    case 4:
+        /* code */
+        break;
+    }
 
     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)))
     {

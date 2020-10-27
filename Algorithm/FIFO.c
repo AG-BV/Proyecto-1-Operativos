@@ -4,8 +4,8 @@
 #include<stdio.h>  
 // Function to find the waiting time for all   
 // processes  
-void findWaitingTime(int processes[], int n,   
-                          int bt[], int wt[])  
+//hola
+void findWaitingTime(int processes[], int n, int bt[], int wt[])  
 {  
     // waiting time for first process is 0  
     wt[0] = 0;  
@@ -16,8 +16,7 @@ void findWaitingTime(int processes[], int n,
 }  
     
 // Function to calculate turn around time  
-void findTurnAroundTime( int processes[], int n,   
-                  int bt[], int wt[], int tat[])  
+void findTurnAroundTime( int processes[], int n, int bt[], int wt[], int tat[])  
 {  
     // calculating turnaround time by adding  
     // bt[i] + wt[i]  

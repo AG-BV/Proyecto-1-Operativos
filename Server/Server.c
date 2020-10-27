@@ -31,6 +31,7 @@ void *menuServer(void *unused)
         case 1:
             /* code */
             clrscr();
+            
             connectionPrintJobTaskList();
             // break;
 
@@ -71,34 +72,29 @@ int main()
     case 1:
         /* code */
         pthread_create(&menuThread, NULL, &menuServer, NULL);
-        connection();
+        connection(1);
         break;
 
     case 2:
         /* code */
         pthread_create(&menuThread, NULL, &menuServer, NULL);
-        connection();
+        connection(2);
         break;
 
     case 3:
         /* code */
         pthread_create(&menuThread, NULL, &menuServer, NULL);
-        connection();
+        connection(3);
         break;
 
     case 4:
         /* code */
         pthread_create(&menuThread, NULL, &menuServer, NULL);
-        connection();
+        connection(4);
         break;
 
     case 5:
         /* code */
-        pthread_create(&menuThread, NULL, &menuServer, NULL);
-        connection();
-        break;
-
-    default:
         break;
     }
 
