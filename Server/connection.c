@@ -92,6 +92,35 @@ void *getMinBurst()
     }
 }
 
+void *getMinPriority()
+{
+    struct node *currente = (struct node *)malloc(sizeof(struct node));
+    struct node *min = (struct node *)malloc(sizeof(struct node));
+    struct node *auxBack = (struct node *)malloc(sizeof(struct node));
+    currente = headTaskList;
+    min = currente;
+
+    while (currente->next != NULL)
+    {
+        if (currente->next->priority < min->priority)
+        {
+            min = currente->next;
+            auxBack = currente;
+            currente = currente->next;
+        }
+        else
+        {
+            currente = currente->next;
+        }
+    }
+    if (min != headTaskList)
+    {
+        auxBack->next = min->next;
+        min->next = headTaskList;
+        headTaskList = min;
+    }
+}
+
 int insertF(struct node *pCurrent)
 {
     //create a link
@@ -359,6 +388,47 @@ void *algorithmSJF(void *unused)
     }
 }
 
+/////////////////////////////////////////////////////
+//                    ALG HDF                     //
+////////////////////////////////////////////////////
+void *algorithmHDF(void *unused)
+{
+    while (1)
+    {
+        if (headTaskList == NULL)
+        {
+            countBurst = 0;
+            timeSchedule = timeSchedule + 1;
+        }
+        else if (countBurst == headTaskList->burst)
+        {
+            countBurst = 0;
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            current = (struct node *)getFirstRM();
+            insertF(current);
+            if (headTaskList!=NULL)
+            {
+                getMinPriority();
+            }
+        }
+        else
+        {
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            countBurst = countBurst + 1;
+            timeSchedule = timeSchedule + 1;
+            current = headTaskList->next;
+            while (current != NULL)
+            {
+                current->wt = current->wt + 1;
+                current = current->next;
+            }
+            current = NULL;
+            free(current);
+            sleep(1);
+        }
+    }
+}
+
 int connection(int pParameter)
 {
     int socket_desc, client_sock, c, *new_sock;
@@ -401,6 +471,7 @@ int connection(int pParameter)
 
     case 3:
         /* code */
+        pthread_create(&CPUScheduler, NULL, &algorithmHDF, NULL);
         break;
 
     case 4:
