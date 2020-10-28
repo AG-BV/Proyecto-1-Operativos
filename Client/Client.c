@@ -93,7 +93,7 @@ json_object *makeJson(int pData1, int pData2)
 void socketClient()
 {
     struct sockaddr_in server;
-    char strucIP[] = "192.168.1.214";
+    char strucIP[] = "192.168.100.7";
     int strucSocket = 8888;
     int sock;
 

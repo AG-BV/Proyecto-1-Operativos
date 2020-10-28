@@ -13,9 +13,8 @@ pthread_t CPUScheduler;
 int GlobalID = 0;
 int countBurst = 0;
 int timeSchedule = 0;
-int timeIn = 0;
-int timeOut = 0;
 int optionG = 0;
+int timeInjm;
 struct node *headTaskList = NULL;
 struct node *headFinishList = NULL;
 struct node *RRpointer = NULL;
@@ -63,7 +62,7 @@ int insert(int pID, int pPrority, int pBurst)
     link->priority = pPrority;
     link->burst = pBurst;
     link->burstBK = pBurst;
-    link->TimeIn = timeIn;
+    link->TimeIn = timeInjm;
 
     //point it to old first node
     if (headTaskList == NULL)
@@ -138,6 +137,8 @@ void clean()
             auxBack = RRpointer;
             RRpointer = RRpointer->next;
             auxBack->next = NULL;
+            currente->TAT = currente->burst+currente->wt;
+            currente->TimeOut = timeInjm;
             insertF(auxBack);
             currente = NULL;
             free(currente);
@@ -373,7 +374,7 @@ void *connection_handler(void *socket_desc)
         priorityT = json_object_get_int(priority);
 
         printf("\n||==========================================|| \n");
-        printf("|| TIME IN : %d                             || \n", timeIn);
+        printf("|| TIME IN : %d                             || \n", timeInjm);
         printf("|| Name: %c                                 || \n", *nameT);
         printf("|| BURST: %d                                || \n", burstT);
         printf("|| PRIORITY: %d                             || \n", priorityT);
@@ -385,6 +386,7 @@ void *connection_handler(void *socket_desc)
         args->name = nameT;
         args->priority = priorityT;
         args->burst = burstT;
+       
 
         pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
 
@@ -426,25 +428,23 @@ void *connection_handler(void *socket_desc)
 ////////////////////////////////////////////////////
 void *algorithmFIFO(void *unused)
 {
+    timeInjm = 0;
     while (1)
     {
         if (headTaskList == NULL)
         {
             countBurst = 0;
-            timeIn = 0;
-            timeOut = 0;
             timeSchedule = timeSchedule + 1;
+            timeInjm = 0;
         }
         else if (countBurst == headTaskList->burst)
         {
             countBurst = 0;
-            timeIn = timeIn + 1;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
             current->TAT = current->burst+current->wt;
-            current->TimeOut= timeOut;
+            current->TimeOut = timeInjm;
             insertF(current);
-            timeOut = timeOut+1;
         }
         else
         {
@@ -454,12 +454,11 @@ void *algorithmFIFO(void *unused)
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
-                timeIn = timeIn + 1;
-                timeOut = timeOut+1;
                 current = current->next;
             }
             current = NULL;
             free(current);
+            timeInjm ++;
             sleep(1);
         }
         
@@ -471,19 +470,22 @@ void *algorithmFIFO(void *unused)
 ////////////////////////////////////////////////////
 void *algorithmSJF(void *unused)
 {
+    timeInjm = 0;
     while (1)
     {
         if (headTaskList == NULL)
         {
             countBurst = 0;
+            timeInjm = 0;
             timeSchedule = timeSchedule + 1;
-            timeIn = timeIn + 1;
         }
         else if (countBurst == headTaskList->burst)
         {
             countBurst = 0;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
+            current->TAT = current->burst+current->wt;
+            current->TimeOut = timeInjm;
             insertF(current);
             if (headTaskList != NULL)
             {
@@ -498,11 +500,11 @@ void *algorithmSJF(void *unused)
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
-                timeIn = timeIn + 1;
                 current = current->next;
             }
             current = NULL;
             free(current);
+            timeInjm ++;
             sleep(1);
         }
     }
@@ -513,19 +515,22 @@ void *algorithmSJF(void *unused)
 ////////////////////////////////////////////////////
 void *algorithmHDF(void *unused)
 {
+     timeInjm = 0;
     while (1)
     {
         if (headTaskList == NULL)
         {
             countBurst = 0;
+             timeInjm = 0;
             timeSchedule = timeSchedule + 1;
-            timeIn = timeIn + 1;
         }
         else if (countBurst == headTaskList->burst)
         {
             countBurst = 0;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
+            current->TAT = current->burst+current->wt;
+            current->TimeOut = timeInjm;
             insertF(current);
             if (headTaskList != NULL)
             {
@@ -540,11 +545,11 @@ void *algorithmHDF(void *unused)
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
-                timeIn = timeIn + 1;
                 current = current->next;
             }
             current = NULL;
             free(current);
+            timeInjm ++;
             sleep(1);
         }
     }
@@ -556,6 +561,7 @@ void *algorithmHDF(void *unused)
 
 void *algorithmRR(void *unused)
 {
+    timeInjm = 0;
     randomData(10, 1);
     RRpointer = headTaskList;
     while (1)
@@ -565,8 +571,8 @@ void *algorithmRR(void *unused)
             if (headTaskList == NULL)
             {
                 countBurst = 0;
+                timeInjm = 0;
                 timeSchedule = timeSchedule + 1;
-                timeIn = timeIn + 1;
             }
             else if (RRpointer->burst > quantum)
             {
@@ -584,10 +590,10 @@ void *algorithmRR(void *unused)
                     {
                         /* code */
                         current->wt = current->wt + quantum;
-                        timeIn = timeIn + quantum;
                         current = current->next;
                     }
                 }
+                timeInjm = timeInjm + quantum;
                 sleep(quantum);
                 RRpointer = RRpointer->next;
             }
@@ -606,14 +612,13 @@ void *algorithmRR(void *unused)
                     {
                         /* code */
                         current->wt = current->wt + RRpointer->burst;
-                        timeIn = timeIn + RRpointer->burst;
                         current = current->next;
                     }
                 }
+                timeInjm = timeInjm + RRpointer->burst;
                 sleep(RRpointer->burst);
                 RRpointer->burst = 0;
                 clean();
-                // RRpointer = RRpointer->next;
             }
         }
         else
