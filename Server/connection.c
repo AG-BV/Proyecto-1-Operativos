@@ -94,13 +94,18 @@ void printJobTaskList()
         printf("||Cola de tareas: ");
         printf("Lista Vacia");
     }
-    while (current != NULL)
+    else
     {
-        printf("Burst: %d", current->burst);
-        printf("->");
-        current = current->next;
+        printf("||Cola de tareas: \n");
+        while (current != NULL)
+        {
+            printf("||ID: %d \n", current->id);
+            printf("||Burst: %d \n", current->burst);
+            printf("||WT: %d \n", current->wt);
+            printf("||->Next: \n");
+            current = current->next;
+        }
     }
-    printf("\n");
 }
 
 void printJobTaskListF()
@@ -109,16 +114,21 @@ void printJobTaskListF()
     current = headFinishList;
     if (current == NULL)
     {
-        printf("||Cola de tareas: ");
+        printf("||Tareas Listas: ");
         printf("Lista Vacia");
     }
-    while (current != NULL)
+    else
     {
-        printf("Burst: %d", current->burst);
-        printf("->");
-        current = current->next;
+        printf("||Tareas Listas: \n");
+        while (current != NULL)
+        {
+            printf("||ID: %d \n", current->id);
+            printf("||Burst: %d \n", current->burst);
+            printf("||WT: %d \n", current->wt);
+            printf("||->Next: \n");
+            current = current->next;
+        }
     }
-    printf("\n");
 }
 
 struct node *getFirstRM()
@@ -126,12 +136,18 @@ struct node *getFirstRM()
     struct node *current = (struct node *)malloc(sizeof(struct node));
     current = headTaskList;
     headTaskList = headTaskList->next;
+    current->next = NULL;
     return current;
 }
 
 void connectionPrintJobTaskList()
 {
     printJobTaskList(headTaskList);
+}
+
+void connectionPrintJobTaskListF()
+{
+    printJobTaskListF(headTaskList);
 }
 /////////////////////////////////////////////////////
 //                 CREA UN JSON                    //
@@ -241,7 +257,7 @@ void *algorithmFIFO(void *unused)
     {
         if (headTaskList == NULL)
         {
-            // countBurst = 0;
+            countBurst = 0;
             timeSchedule = timeSchedule + 1;
         }
         else if (countBurst == headTaskList->burst)
@@ -250,8 +266,6 @@ void *algorithmFIFO(void *unused)
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
             insertF(current);
-            printJobTaskListF();
-            printf("AQUIIII");
         }
         else
         {

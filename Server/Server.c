@@ -31,12 +31,13 @@ void *menuServer(void *unused)
         case 1:
             /* code */
             clrscr();
-            
             connectionPrintJobTaskList();
-            // break;
+            break;
 
         case 2:
             /* code */
+            clrscr();
+            connectionPrintJobTaskListF();
             break;
 
         case 3:
