@@ -8,6 +8,7 @@
 #include <json-c/json.h>
 
 struct node *headTaskList = NULL;
+struct node *RRpointer = NULL;
 
 struct node
 {
@@ -17,6 +18,44 @@ struct node
     int wt;
     struct node *next;
 };
+
+void clean()
+{
+    struct node *currente = (struct node *)malloc(sizeof(struct node));
+    currente = headTaskList;
+    if (currente == RRpointer)
+    {
+        /* code */
+        headTaskList = headTaskList->next;
+        currente->next = NULL;
+        // insertF(currente);
+        currente = NULL;
+        free(currente);
+        RRpointer = headTaskList;
+    }
+    else
+    {
+        struct node *auxBack = (struct node *)malloc(sizeof(struct node));
+        auxBack = headTaskList;
+        while (currente != NULL)
+        {
+            while (currente->next != RRpointer)
+            {
+                /* code */
+                currente = currente->next;
+            }
+            currente->next = RRpointer->next;
+            auxBack = RRpointer;
+            RRpointer = RRpointer->next;
+            auxBack->next = NULL;
+            // insertF(auxBack);
+            currente = NULL;
+            free(currente);
+            auxBack = NULL;
+            free(auxBack);
+        }
+    }
+}
 
 struct node *getMinBurst()
 {
@@ -87,8 +126,10 @@ int main()
     insert(1, 1, 5);
     insert(1, 1, 4);
     insert(1, 1, 3);
+    insert(1, 1, 0);
     insert(1, 1, 1);
-    insert(1, 1, 2);
 
-    getMinBurst();
+    RRpointer = headTaskList->next->next->next;
+
+    clean();
 }

@@ -21,6 +21,7 @@ void *menuServer(void *unused)
         printf("|| 1. VER JOBTASKLIST                       ||\n");
         printf("|| 2. DETENER SIMULACION                    ||\n");
         printf("|| 3. SALIR                                 ||\n");
+        printf("|| Quantum: %d                               ||\n", getQuantum());
         printf("||==========================================||\n");
         printf("||--------INTRODUZCA-UNA-OPCION-(1-3)-------||\n");
         printf("||Opcion: ");
@@ -30,13 +31,13 @@ void *menuServer(void *unused)
         {
         case 1:
             /* code */
-            clrscr();
+            // clrscr();
             connectionPrintJobTaskList();
             break;
 
         case 2:
             /* code */
-            clrscr();
+            // clrscr();
             connectionPrintJobTaskListF();
             break;
 

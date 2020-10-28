@@ -1,10 +1,13 @@
 
 FIFO:
 
+5
+0    3
+     8    
 P1 - P2  - P3
 
 
-
+  0          |   x    |    
       P1       
   |----3-----|---P2---|----------------------
   0          5        8
@@ -70,7 +73,31 @@ tasklist = [p2] - [p3]
 finishlist = [p1]
 
 
-------------------------------HPF-----------------------------------------------
+------------------------------RR-----------------------------------------------
+
+//primero mayor 
+Q = PROGRAMAR EL Q
+tasklist = [p1] - [p2] - [p3] - [p4] - [p5] -  [p6] - [p7]                                      
+tasklist = [p1] - [p2] - [p3] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p2] - [p1] - [p3] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p3] - [p1] - [p2] - [p4] - [p5] -  [p6] - [p7]
+tasklist = [p4] - [p1] - [p2] - [p3] - [p5] -  [p6] - [p7]
+tasklist = [p5] - [p1] - [p2] - [p3] - [p4] -  [p6] - [p7]
+tasklist = [p6] - [p1] - [p2] - [p3] - [p4] -  [p5] - [p7]
+tasklist = [p7] - [p1] - [p2] - [p3] - [p4] -  [p5] - [p6] - [P8]
 
 
+RRpointer
+                              
+tasklist = -NULL 
+   
+int flag = 1
+do{
 
+  if lista vacia {
+
+  }
+
+
+}            ^
+while(flag);

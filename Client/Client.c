@@ -151,7 +151,7 @@ void *sendData(void *received_struct)
     printf(separador, sizeof(separador));
     printf("|| HILO DE ENVIO,LOS DATOS DEL PROCESO SON: ||\n");
     printf(separador, sizeof(separador));
-    printf("||              BURS : %d                    || \n", dataBurst);
+    printf("||             BURST : %d                    || \n", dataBurst);
     printf(separador, sizeof(separador));
     printf("||            PRIORITY : %d                  || \n", dataPriority);
     printf(separador, sizeof(separador));
@@ -277,6 +277,7 @@ void *readFile(void *received_struct)
     printf("||==========================================|| \n");
     pthread_cancel(pthread_self());
 }
+
 
 /////////////////////////////////////////////////////
 //                AUTOMATIC THREAD                  //
@@ -414,7 +415,13 @@ void menuClient()
             idGlobalProcess = 0;
             lenFile = 0;
             pthread_create(&AutoMode, NULL, automatic, NULL);
-            pthread_join(AutoMode, NULL);
+            scanf("%s", name);
+            if (name != NULL)
+            {
+                pthread_cancel(AutoMode);
+                printf("////////////////////////////////////////////// \n");
+                break;
+            }
             break;
 
         //////////////////////////////////

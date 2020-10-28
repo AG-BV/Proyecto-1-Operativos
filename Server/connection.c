@@ -6,14 +6,29 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <json-c/json.h>
+#include <ctype.h>
 
 pthread_t jobScheduler;
 pthread_t CPUScheduler;
 int GlobalID = 0;
 int countBurst = 0;
 int timeSchedule = 0;
+int timeIn = 0;
+int timeOut = 0;
+int optionG = 0;
 struct node *headTaskList = NULL;
 struct node *headFinishList = NULL;
+struct node *RRpointer = NULL;
+
+int quantum;
+
+/////////////////////////////////////////////////////
+//                     RANDOM                      //
+/////////////////////////////////////////////////////
+void randomData(int pUpper, int pLower)
+{
+    quantum = (rand() % (pUpper - pLower + 1)) + pLower;
+}
 
 struct arguments
 {
@@ -28,7 +43,11 @@ struct node
     int id;
     int burst;
     int priority;
+    int TimeIn;
+    int TimeOut;
+    int TAT; 
     int wt;
+    int burstBK;
     struct node *next;
 };
 
@@ -43,6 +62,8 @@ int insert(int pID, int pPrority, int pBurst)
     link->wt = 0;
     link->priority = pPrority;
     link->burst = pBurst;
+    link->burstBK = pBurst;
+    link->TimeIn = timeIn;
 
     //point it to old first node
     if (headTaskList == NULL)
@@ -63,6 +84,72 @@ int insert(int pID, int pPrority, int pBurst)
     return 1;
 }
 
+int insertF(struct node *pCurrent)
+{
+    //create a link
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+
+    //point it to old first node
+    if (headFinishList == NULL)
+    {
+        headFinishList = pCurrent;
+        return 1;
+    }
+    current = headFinishList;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = pCurrent;
+    current = NULL;
+    free(current);
+    return 1;
+}
+
+/////////////////////////////////////////////////////
+//               CLEAN RR LIST                     //
+/////////////////////////////////////////////////////
+void clean()
+{
+    struct node *currente = (struct node *)malloc(sizeof(struct node));
+    currente = headTaskList;
+    if (currente == RRpointer)
+    {
+        /* code */
+        headTaskList = headTaskList->next;
+        currente->next = NULL;
+        insertF(currente);
+        currente = NULL;
+        free(currente);
+        RRpointer = headTaskList;
+    }
+    else
+    {
+        struct node *auxBack = (struct node *)malloc(sizeof(struct node));
+        auxBack = headTaskList;
+        while (currente != NULL)
+        {
+            while (currente->next != RRpointer)
+            {
+                /* code */
+                currente = currente->next;
+            }
+            currente->next = RRpointer->next;
+            auxBack = RRpointer;
+            RRpointer = RRpointer->next;
+            auxBack->next = NULL;
+            insertF(auxBack);
+            currente = NULL;
+            free(currente);
+            auxBack = NULL;
+            free(auxBack);
+        }
+    }
+}
+
+/////////////////////////////////////////////////////
+//                     GET MIN                     //
+/////////////////////////////////////////////////////
 void *getMinBurst()
 {
     struct node *currente = (struct node *)malloc(sizeof(struct node));
@@ -121,28 +208,6 @@ void *getMinPriority()
     }
 }
 
-int insertF(struct node *pCurrent)
-{
-    //create a link
-    struct node *current = (struct node *)malloc(sizeof(struct node));
-
-    //point it to old first node
-    if (headFinishList == NULL)
-    {
-        headFinishList = pCurrent;
-        return 1;
-    }
-    current = headFinishList;
-    while (current->next != NULL)
-    {
-        current = current->next;
-    }
-    current->next = pCurrent;
-    current = NULL;
-    free(current);
-    return 1;
-}
-
 void printJobTaskList()
 {
     struct node *current = (struct node *)malloc(sizeof(struct node));
@@ -180,8 +245,37 @@ void printJobTaskListF()
         printf("||Tareas Listas: \n");
         while (current != NULL)
         {
+        printf("\n||==========================================|| \n");
+        printf(  "|| TIME IN : %d                             \n", current->TimeIn);
+        printf(  "|| TIME OUT : %d                            \n", current->TimeOut);
+        printf(  "|| ID: %d                                   \n",current->id );
+        printf(  "|| BURST: %d                                \n", current->burstBK);
+        printf(  "|| PRIORITY: %d                             \n", current->priority);
+        printf(  "|| TAT: %d                                  \n", current->TAT);
+        printf(  "|| WT : %d                                  \n", current->wt);
+        printf(  "||==========================================|| \n");
+        printf(  "||                  NEXT                    ||  \n");
+            current = current->next;
+        }
+    }
+}
+
+void printJobTaskListR()
+{
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+    current = headFinishList;
+    if (current == NULL)
+    {
+        printf("||Tareas Listas: ");
+        printf("Lista Vacia");
+    }
+    else
+    {
+        printf("||Tareas Listas: \n");
+        while (current != NULL)
+        {
             printf("||ID: %d \n", current->id);
-            printf("||Burst: %d \n", current->burst);
+            printf("||Burst: %d \n", current->burstBK);
             printf("||WT: %d \n", current->wt);
             printf("||->Next: \n");
             current = current->next;
@@ -200,12 +294,21 @@ struct node *getFirstRM()
 
 void connectionPrintJobTaskList()
 {
-    printJobTaskList(headTaskList);
+    printJobTaskList();
 }
 
 void connectionPrintJobTaskListF()
 {
-    printJobTaskListF(headTaskList);
+    if (optionG == 4)
+    {
+        /* code */
+        printJobTaskListR();
+    }
+    else
+    {
+        /* code */
+        printJobTaskListF();
+    }
 }
 /////////////////////////////////////////////////////
 //                 CREA UN JSON                    //
@@ -228,6 +331,11 @@ void *jobSchedulerTask(void *pArgs)
 {
     struct arguments *args = (struct arguments *)pArgs;
     insert(args->id, args->priority, args->burst);
+}
+
+int getQuantum()
+{
+    return quantum;
 }
 
 void *connection_handler(void *socket_desc)
@@ -264,9 +372,12 @@ void *connection_handler(void *socket_desc)
         burstT = json_object_get_int(burst);
         priorityT = json_object_get_int(priority);
 
-        printf("Name: %c\n", *nameT);
-        printf("BURST: %d\n", burstT);
-        printf("PRIORITY: %d\n", priorityT);
+        printf("\n||==========================================|| \n");
+        printf("|| TIME IN : %d                             || \n", timeIn);
+        printf("|| Name: %c                                 || \n", *nameT);
+        printf("|| BURST: %d                                || \n", burstT);
+        printf("|| PRIORITY: %d                             || \n", priorityT);
+        printf("||==========================================|| \n");
 
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
         GlobalID = GlobalID + 1;
@@ -320,30 +431,38 @@ void *algorithmFIFO(void *unused)
         if (headTaskList == NULL)
         {
             countBurst = 0;
+            timeIn = 0;
+            timeOut = 0;
             timeSchedule = timeSchedule + 1;
         }
         else if (countBurst == headTaskList->burst)
         {
             countBurst = 0;
+            timeIn = timeIn + 1;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
+            current->TAT = current->burst+current->wt;
+            current->TimeOut= timeOut;
             insertF(current);
+            timeOut = timeOut+1;
         }
         else
         {
             struct node *current = (struct node *)malloc(sizeof(struct node));
             countBurst = countBurst + 1;
-            timeSchedule = timeSchedule + 1;
             current = headTaskList->next;
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
+                timeIn = timeIn + 1;
+                timeOut = timeOut+1;
                 current = current->next;
             }
             current = NULL;
             free(current);
             sleep(1);
         }
+        
     }
 }
 
@@ -358,6 +477,7 @@ void *algorithmSJF(void *unused)
         {
             countBurst = 0;
             timeSchedule = timeSchedule + 1;
+            timeIn = timeIn + 1;
         }
         else if (countBurst == headTaskList->burst)
         {
@@ -365,7 +485,7 @@ void *algorithmSJF(void *unused)
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
             insertF(current);
-            if (headTaskList!=NULL)
+            if (headTaskList != NULL)
             {
                 getMinBurst();
             }
@@ -374,11 +494,11 @@ void *algorithmSJF(void *unused)
         {
             struct node *current = (struct node *)malloc(sizeof(struct node));
             countBurst = countBurst + 1;
-            timeSchedule = timeSchedule + 1;
             current = headTaskList->next;
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
+                timeIn = timeIn + 1;
                 current = current->next;
             }
             current = NULL;
@@ -399,6 +519,7 @@ void *algorithmHDF(void *unused)
         {
             countBurst = 0;
             timeSchedule = timeSchedule + 1;
+            timeIn = timeIn + 1;
         }
         else if (countBurst == headTaskList->burst)
         {
@@ -406,7 +527,7 @@ void *algorithmHDF(void *unused)
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
             insertF(current);
-            if (headTaskList!=NULL)
+            if (headTaskList != NULL)
             {
                 getMinPriority();
             }
@@ -415,16 +536,89 @@ void *algorithmHDF(void *unused)
         {
             struct node *current = (struct node *)malloc(sizeof(struct node));
             countBurst = countBurst + 1;
-            timeSchedule = timeSchedule + 1;
             current = headTaskList->next;
             while (current != NULL)
             {
                 current->wt = current->wt + 1;
+                timeIn = timeIn + 1;
                 current = current->next;
             }
             current = NULL;
             free(current);
             sleep(1);
+        }
+    }
+}
+
+/////////////////////////////////////////////////////
+//                    ALG RR                      //
+////////////////////////////////////////////////////
+
+void *algorithmRR(void *unused)
+{
+    randomData(10, 1);
+    RRpointer = headTaskList;
+    while (1)
+    {
+        if (RRpointer != NULL)
+        {
+            if (headTaskList == NULL)
+            {
+                countBurst = 0;
+                timeSchedule = timeSchedule + 1;
+                timeIn = timeIn + 1;
+            }
+            else if (RRpointer->burst > quantum)
+            {
+                RRpointer->burst = RRpointer->burst - quantum;
+                struct node *current = (struct node *)malloc(sizeof(struct node));
+                current = headTaskList;
+                while (current != NULL)
+                {
+                    if (current == RRpointer)
+                    {
+                        /* code */
+                        current = current->next;
+                    }
+                    else
+                    {
+                        /* code */
+                        current->wt = current->wt + quantum;
+                        timeIn = timeIn + quantum;
+                        current = current->next;
+                    }
+                }
+                sleep(quantum);
+                RRpointer = RRpointer->next;
+            }
+            else
+            {
+                struct node *current = (struct node *)malloc(sizeof(struct node));
+                current = headTaskList;
+                while (current != NULL)
+                {
+                    if (current == RRpointer)
+                    {
+                        /* code */
+                        current = current->next;
+                    }
+                    else
+                    {
+                        /* code */
+                        current->wt = current->wt + RRpointer->burst;
+                        timeIn = timeIn + RRpointer->burst;
+                        current = current->next;
+                    }
+                }
+                sleep(RRpointer->burst);
+                RRpointer->burst = 0;
+                clean();
+                // RRpointer = RRpointer->next;
+            }
+        }
+        else
+        {
+            RRpointer = headTaskList;
         }
     }
 }
@@ -476,6 +670,8 @@ int connection(int pParameter)
 
     case 4:
         /* code */
+        pthread_create(&CPUScheduler, NULL, &algorithmRR, NULL);
+        optionG = 4;
         break;
     }
 
