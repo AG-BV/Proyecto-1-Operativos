@@ -1,72 +1,94 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <json-c/json.h>
 
-// C program for implementation of FCFS   
-// scheduling  
-#include<stdio.h>  
-// Function to find the waiting time for all   
-// processes  
-//hola
-void findWaitingTime(int processes[], int n, int bt[], int wt[])  
-{  
-    // waiting time for first process is 0  
-    wt[0] = 0;  
+struct node *headTaskList = NULL;
+
+struct node
+{
+    int id;
+    int burst;
+    int priority;
+    int wt;
+    struct node *next;
+};
+
+struct node *getMinBurst()
+{
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+    struct node *min = (struct node *)malloc(sizeof(struct node));
+    struct node *auxBack = (struct node *)malloc(sizeof(struct node));
+    current = headTaskList;
+    min = current;
     
-    // calculating waiting time  
-    for (int  i = 1; i < n ; i++ )  
-        wt[i] =  bt[i-1] + wt[i-1] ;  
-}  
-    
-// Function to calculate turn around time  
-void findTurnAroundTime( int processes[], int n, int bt[], int wt[], int tat[])  
-{  
-    // calculating turnaround time by adding  
-    // bt[i] + wt[i]  
-    for (int  i = 0; i < n ; i++)  
-        tat[i] = bt[i] + wt[i];  
-}  
-    
-//Function to calculate average time  
-void findavgTime( int processes[], int n, int bt[])  
-{  
-    int wt[n], tat[n], total_wt = 0, total_tat = 0;  
-    
-    //Function to find waiting time of all processes  
-    findWaitingTime(processes, n, bt, wt);  
-    
-    //Function to find turn around time for all processes  
-    findTurnAroundTime(processes, n, bt, wt, tat);  
-    
-    //Display processes along with all details  
-    printf("Processes   Burst time   Waiting time   Turn around time\n");  
-    
-    // Calculate total waiting time and total turn   
-    // around time  
-    for (int  i=0; i<n; i++)  
-    {  
-        total_wt = total_wt + wt[i];  
-        total_tat = total_tat + tat[i];  
-        printf("   %d ",(i+1)); 
-        printf("       %d ", bt[i] ); 
-        printf("       %d",wt[i] ); 
-        printf("       %d\n",tat[i] );  
-    }  
-    int s=(float)total_wt / (float)n; 
-    int t=(float)total_tat / (float)n; 
-    printf("Average waiting time = %d",s); 
-    printf("\n"); 
-    printf("Average turn around time = %d ",t);  
-}  
-    
-// Driver code  
-int main()  
-{  
-    //process id's  
-    int processes[] = { 1, 2, 3};  
-    int n = sizeof processes / sizeof processes[0];  
-    
-    //Burst time of all processes  
-    int  burst_time[] = {10, 5, 8};  
-    
-    findavgTime(processes, n,  burst_time);  
-    return 0;  
-}  
-// This code is contributed by Shivi_Aggarwal 
+    while (current->next != NULL)
+    {
+        if (current->next->burst < min->burst)
+        {
+            min = current->next;
+            auxBack = current;
+            current = current->next;
+        }
+        else
+        {
+            current = current->next;
+        }
+    }
+    if(min != headTaskList){
+        auxBack->next = min->next;
+        min->next = headTaskList;
+        headTaskList = min;
+    }
+    else
+    {
+        
+    }
+    return min;
+}
+
+int insert(int pID, int pPrority, int pBurst)
+{
+    //create a link
+    struct node *link = (struct node *)malloc(sizeof(struct node));
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+
+    //link->key = key;
+    link->id = pID;
+    link->wt = 0;
+    link->priority = pPrority;
+    link->burst = pBurst;
+
+    //point it to old first node
+    if (headTaskList == NULL)
+    {
+        headTaskList = link;
+        return 1;
+    }
+    current = headTaskList;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = link;
+    link = NULL;
+    current = NULL;
+    free(link);
+    free(current);
+    return 1;
+}
+
+int main()
+{
+    insert(1, 1, 5);
+    insert(1, 1, 4);
+    insert(1, 1, 3);
+    insert(1, 1, 1);
+    insert(1, 1, 2);
+
+    getMinBurst();
+}

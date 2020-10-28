@@ -63,6 +63,35 @@ int insert(int pID, int pPrority, int pBurst)
     return 1;
 }
 
+void *getMinBurst()
+{
+    struct node *currente = (struct node *)malloc(sizeof(struct node));
+    struct node *min = (struct node *)malloc(sizeof(struct node));
+    struct node *auxBack = (struct node *)malloc(sizeof(struct node));
+    currente = headTaskList;
+    min = currente;
+
+    while (currente->next != NULL)
+    {
+        if (currente->next->burst < min->burst)
+        {
+            min = currente->next;
+            auxBack = currente;
+            currente = currente->next;
+        }
+        else
+        {
+            currente = currente->next;
+        }
+    }
+    if (min != headTaskList)
+    {
+        auxBack->next = min->next;
+        min->next = headTaskList;
+        headTaskList = min;
+    }
+}
+
 int insertF(struct node *pCurrent)
 {
     //create a link
@@ -206,6 +235,10 @@ void *connection_handler(void *socket_desc)
         burstT = json_object_get_int(burst);
         priorityT = json_object_get_int(priority);
 
+        printf("Name: %c\n", *nameT);
+        printf("BURST: %d\n", burstT);
+        printf("PRIORITY: %d\n", priorityT);
+
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
         GlobalID = GlobalID + 1;
         args->id = GlobalID;
@@ -285,6 +318,47 @@ void *algorithmFIFO(void *unused)
     }
 }
 
+/////////////////////////////////////////////////////
+//                    ALG SJF                     //
+////////////////////////////////////////////////////
+void *algorithmSJF(void *unused)
+{
+    while (1)
+    {
+        if (headTaskList == NULL)
+        {
+            countBurst = 0;
+            timeSchedule = timeSchedule + 1;
+        }
+        else if (countBurst == headTaskList->burst)
+        {
+            countBurst = 0;
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            current = (struct node *)getFirstRM();
+            insertF(current);
+            if (headTaskList!=NULL)
+            {
+                getMinBurst();
+            }
+        }
+        else
+        {
+            struct node *current = (struct node *)malloc(sizeof(struct node));
+            countBurst = countBurst + 1;
+            timeSchedule = timeSchedule + 1;
+            current = headTaskList->next;
+            while (current != NULL)
+            {
+                current->wt = current->wt + 1;
+                current = current->next;
+            }
+            current = NULL;
+            free(current);
+            sleep(1);
+        }
+    }
+}
+
 int connection(int pParameter)
 {
     int socket_desc, client_sock, c, *new_sock;
@@ -322,6 +396,7 @@ int connection(int pParameter)
 
     case 2:
         /* code */
+        pthread_create(&CPUScheduler, NULL, &algorithmSJF, NULL);
         break;
 
     case 3:
