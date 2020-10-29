@@ -14,6 +14,7 @@ int GlobalID = 0;
 int countBurst = 0;
 int timeSchedule = 0;
 int optionG = 0;
+int globalProcess = 0;
 int timeInjm;
 struct node *headTaskList = NULL;
 struct node *headFinishList = NULL;
@@ -377,11 +378,12 @@ void *connection_handler(void *socket_desc)
         burstT = json_object_get_int(burst);
         priorityT = json_object_get_int(priority);
 
+        globalProcess++;
         printf("\n||==========================================|| \n");
-        printf("|| TIME IN : %d                             || \n", timeInjm);
-        printf("|| Name: %c                                 || \n", *nameT);
-        printf("|| BURST: %d                                || \n", burstT);
-        printf("|| PRIORITY: %d                             || \n", priorityT);
+        printf("|| ID : %d                                   \n", globalProcess);
+        printf("|| BURST: %d                                 \n", burstT);
+        printf("|| PRIORITY: %d                              \n", priorityT);
+        printf("|| TIME IN : %d                                   \n",timeInjm);
         printf("||==========================================|| \n");
 
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
@@ -573,6 +575,7 @@ void *algorithmRR(void *unused)
             if (headTaskList == NULL)
             {
                 countBurst = 0;
+                timeInjm = 0;
                 timeSchedule = timeSchedule + 1;
             }
             else if (RRpointer->burst > quantum)
@@ -594,6 +597,7 @@ void *algorithmRR(void *unused)
                         current = current->next;
                     }
                 }
+                timeInjm = timeInjm + quantum;
                 sleep(quantum);
                 RRpointer = RRpointer->next;
             }
@@ -615,13 +619,14 @@ void *algorithmRR(void *unused)
                         current = current->next;
                     }
                 }
-               
-                sleep(RRpointer->burst);
                 RRpointer->TAT = RRpointer->burstBK - RRpointer->wt;
                 RRpointer->TimeIn = timeInjm;
-                timeInjm = timeInjm + RRpointer->burstBK;
+                timeInjm = timeInjm + RRpointer->burst;
                 RRpointer->TimeOut = timeInjm;
+                
+               
                 RRpointer->burst = 0;
+                sleep(RRpointer->burst);
                 clean();
             }
         }
