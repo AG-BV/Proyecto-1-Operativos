@@ -16,6 +16,7 @@ int timeSchedule = 0;
 int optionG = 0;
 int globalProcess = 0;
 int timeInjm;
+int timellegada;
 struct node *headTaskList = NULL;
 struct node *headFinishList = NULL;
 struct node *RRpointer = NULL;
@@ -43,6 +44,7 @@ struct node
     int id;
     int burst;
     int priority;
+    int TimeInAux;
     int TimeIn;
     int TimeOut;
     int TAT;
@@ -64,6 +66,7 @@ int insert(int pID, int pPrority, int pBurst)
     link->burst = pBurst;
     link->burstBK = pBurst;
     link->TimeIn = timeInjm;
+    link->TimeInAux = timeInjm;
 
     //point it to old first node
     if (headTaskList == NULL)
@@ -383,8 +386,9 @@ void *connection_handler(void *socket_desc)
         printf("|| ID : %d                                   \n", globalProcess);
         printf("|| BURST: %d                                 \n", burstT);
         printf("|| PRIORITY: %d                              \n", priorityT);
-        printf("|| TIME IN : %d                                   \n",timeInjm);
+        printf("|| TIME IN : %d                                   \n", timeInjm);
         printf("||==========================================|| \n");
+        timellegada = timeInjm;
 
         struct arguments *args = (struct arguments *)malloc(sizeof(struct arguments));
         GlobalID = GlobalID + 1;
@@ -619,12 +623,13 @@ void *algorithmRR(void *unused)
                         current = current->next;
                     }
                 }
-                RRpointer->TAT = RRpointer->burstBK - RRpointer->wt;
                 RRpointer->TimeIn = timeInjm;
                 timeInjm = timeInjm + RRpointer->burst;
                 RRpointer->TimeOut = timeInjm;
-                
-               
+
+                RRpointer->TAT = RRpointer->TimeOut - RRpointer->TimeInAux;
+                RRpointer->wt = RRpointer->TAT - RRpointer->burstBK;
+
                 RRpointer->burst = 0;
                 sleep(RRpointer->burst);
                 clean();
