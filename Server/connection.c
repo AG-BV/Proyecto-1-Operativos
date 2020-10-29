@@ -278,6 +278,7 @@ void printJobTaskListR()
         while (current != NULL)
         {
             printf("\n||==========================================|| \n");
+            printf("|| TIME IN ORIGINAL: %d                             \n", current->TimeInAux);
             printf("|| TIME IN : %d                             \n", current->TimeIn);
             printf("|| TIME OUT : %d                            \n", current->TimeOut);
             printf("|| ID: %d                                   \n", current->id);
