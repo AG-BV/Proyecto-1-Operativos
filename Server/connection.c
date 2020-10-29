@@ -44,7 +44,7 @@ struct node
     int priority;
     int TimeIn;
     int TimeOut;
-    int TAT; 
+    int TAT;
     int wt;
     int burstBK;
     struct node *next;
@@ -137,8 +137,6 @@ void clean()
             auxBack = RRpointer;
             RRpointer = RRpointer->next;
             auxBack->next = NULL;
-            currente->TAT = currente->burst+currente->wt;
-            currente->TimeOut = timeInjm;
             insertF(auxBack);
             currente = NULL;
             free(currente);
@@ -246,16 +244,16 @@ void printJobTaskListF()
         printf("||Tareas Listas: \n");
         while (current != NULL)
         {
-        printf("\n||==========================================|| \n");
-        printf(  "|| TIME IN : %d                             \n", current->TimeIn);
-        printf(  "|| TIME OUT : %d                            \n", current->TimeOut);
-        printf(  "|| ID: %d                                   \n",current->id );
-        printf(  "|| BURST: %d                                \n", current->burstBK);
-        printf(  "|| PRIORITY: %d                             \n", current->priority);
-        printf(  "|| TAT: %d                                  \n", current->TAT);
-        printf(  "|| WT : %d                                  \n", current->wt);
-        printf(  "||==========================================|| \n");
-        printf(  "||                  NEXT                    ||  \n");
+            printf("\n||==========================================|| \n");
+            printf("|| TIME IN : %d                             \n", current->TimeIn);
+            printf("|| TIME OUT : %d                            \n", current->TimeOut);
+            printf("|| ID: %d                                   \n", current->id);
+            printf("|| BURST: %d                                \n", current->burstBK);
+            printf("|| PRIORITY: %d                             \n", current->priority);
+            printf("|| TAT: %d                                  \n", current->TAT);
+            printf("|| WT : %d                                  \n", current->wt);
+            printf("||==========================================|| \n");
+            printf("||                  NEXT                    ||  \n");
             current = current->next;
         }
     }
@@ -275,10 +273,16 @@ void printJobTaskListR()
         printf("||Tareas Listas: \n");
         while (current != NULL)
         {
-            printf("||ID: %d \n", current->id);
-            printf("||Burst: %d \n", current->burstBK);
-            printf("||WT: %d \n", current->wt);
-            printf("||->Next: \n");
+            printf("\n||==========================================|| \n");
+            printf("|| TIME IN : %d                             \n", current->TimeIn);
+            printf("|| TIME OUT : %d                            \n", current->TimeOut);
+            printf("|| ID: %d                                   \n", current->id);
+            printf("|| BURST: %d                                \n", current->burstBK);
+            printf("|| PRIORITY: %d                             \n", current->priority);
+            printf("|| TAT: %d                                  \n", current->TAT);
+            printf("|| WT : %d                                  \n", current->wt);
+            printf("||==========================================|| \n");
+            printf("||                  NEXT                    ||  \n");
             current = current->next;
         }
     }
@@ -386,7 +390,6 @@ void *connection_handler(void *socket_desc)
         args->name = nameT;
         args->priority = priorityT;
         args->burst = burstT;
-       
 
         pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
 
@@ -442,7 +445,7 @@ void *algorithmFIFO(void *unused)
             countBurst = 0;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
-            current->TAT = current->burst+current->wt;
+            current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
             insertF(current);
         }
@@ -458,10 +461,9 @@ void *algorithmFIFO(void *unused)
             }
             current = NULL;
             free(current);
-            timeInjm ++;
+            timeInjm++;
             sleep(1);
         }
-        
     }
 }
 
@@ -484,7 +486,7 @@ void *algorithmSJF(void *unused)
             countBurst = 0;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
-            current->TAT = current->burst+current->wt;
+            current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
             insertF(current);
             if (headTaskList != NULL)
@@ -504,7 +506,7 @@ void *algorithmSJF(void *unused)
             }
             current = NULL;
             free(current);
-            timeInjm ++;
+            timeInjm++;
             sleep(1);
         }
     }
@@ -515,13 +517,13 @@ void *algorithmSJF(void *unused)
 ////////////////////////////////////////////////////
 void *algorithmHDF(void *unused)
 {
-     timeInjm = 0;
+    timeInjm = 0;
     while (1)
     {
         if (headTaskList == NULL)
         {
             countBurst = 0;
-             timeInjm = 0;
+            timeInjm = 0;
             timeSchedule = timeSchedule + 1;
         }
         else if (countBurst == headTaskList->burst)
@@ -529,7 +531,7 @@ void *algorithmHDF(void *unused)
             countBurst = 0;
             struct node *current = (struct node *)malloc(sizeof(struct node));
             current = (struct node *)getFirstRM();
-            current->TAT = current->burst+current->wt;
+            current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
             insertF(current);
             if (headTaskList != NULL)
@@ -549,7 +551,7 @@ void *algorithmHDF(void *unused)
             }
             current = NULL;
             free(current);
-            timeInjm ++;
+            timeInjm++;
             sleep(1);
         }
     }
@@ -571,7 +573,6 @@ void *algorithmRR(void *unused)
             if (headTaskList == NULL)
             {
                 countBurst = 0;
-                timeInjm = 0;
                 timeSchedule = timeSchedule + 1;
             }
             else if (RRpointer->burst > quantum)
@@ -593,7 +594,6 @@ void *algorithmRR(void *unused)
                         current = current->next;
                     }
                 }
-                timeInjm = timeInjm + quantum;
                 sleep(quantum);
                 RRpointer = RRpointer->next;
             }
@@ -615,8 +615,12 @@ void *algorithmRR(void *unused)
                         current = current->next;
                     }
                 }
-                timeInjm = timeInjm + RRpointer->burst;
+               
                 sleep(RRpointer->burst);
+                RRpointer->TAT = RRpointer->burstBK - RRpointer->wt;
+                RRpointer->TimeIn = timeInjm;
+                timeInjm = timeInjm + RRpointer->burstBK;
+                RRpointer->TimeOut = timeInjm;
                 RRpointer->burst = 0;
                 clean();
             }

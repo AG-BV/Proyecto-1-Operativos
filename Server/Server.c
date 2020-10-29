@@ -12,7 +12,7 @@ void *menuServer(void *unused)
     int opcion;
     int wState = 1;
     clrscr();
-    while (wState)
+    while (wState==1)
     {
         printf("||==========================================||\n");
         printf("||----------------MENU-SERVER---------------||\n");
