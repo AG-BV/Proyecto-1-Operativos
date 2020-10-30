@@ -222,7 +222,7 @@ void printJobTaskList()
     }
     else
     {
-        printf("||Cola de tareas: \n");
+        printf("\n||Cola de tareas: \n");
         while (current != NULL)
         {
             printf("||ID: %d \n", current->id);
@@ -305,6 +305,55 @@ struct node *getFirstRM()
 void connectionPrintJobTaskList()
 {
     printJobTaskList();
+}
+
+void finalprint()
+{
+    pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+    int play = 0;
+    
+
+    pthread_cancel(CPUScheduler);
+    pthread_cancel(jobScheduler);
+    int cantidad = 0;
+    float promWT = 0;
+    float promTAT = 0;
+    struct node *current = (struct node *)malloc(sizeof(struct node));
+    current = headFinishList;
+    if (current == NULL)
+    {
+        /* code */
+        printf("Lista vacia");
+    }
+    while (current != NULL)
+    {
+        /* code */
+        cantidad = cantidad + 1;
+        promTAT = promTAT + current->TAT;
+        promWT = promWT + current->wt;
+        printf("\n||==========================================|| \n");
+        printf("|| TIME IN : %d                             \n", current->TimeIn);
+        printf("|| TIME OUT : %d                            \n", current->TimeOut);
+        printf("|| ID: %d                                   \n", current->id);
+        printf("|| BURST: %d                                \n", current->burstBK);
+        printf("|| PRIORITY: %d                             \n", current->priority);
+        printf("|| TAT: %d                                  \n", current->TAT);
+        printf("|| WT : %d                                  \n", current->wt);
+        printf("||==========================================|| \n");
+        printf("||                  NEXT                    ||  \n");
+        current = current->next;
+    }
+
+    promTAT = promTAT / cantidad;
+    promWT = promWT / cantidad;
+
+    printf("||==========================================|| \n");
+    printf("||==============Datos generales=============|| \n");
+    printf("||Promedio cantidad total de procesos: %d      \n", cantidad);
+    printf("||Promedio del Waiting time: %f                \n", promWT);
+    printf("||Promedio del Turn Around time: %f            \n", promTAT);
+    printf("||==========================================|| \n");
 }
 
 void connectionPrintJobTaskListF()
@@ -454,6 +503,11 @@ void *algorithmFIFO(void *unused)
             current = (struct node *)getFirstRM();
             current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
+            printf("\n||==========================================||\n");
+            printf("||================Finalizado================||\n");
+            printf("||El proceso %d con burst %d prioridad %d      ||\n", current->id, current->burst, current->priority);
+            printf("||Ha terminado exitosamente su ejecucion    ||\n");
+            printf("||==========================================||\n");
             insertF(current);
         }
         else
@@ -495,6 +549,11 @@ void *algorithmSJF(void *unused)
             current = (struct node *)getFirstRM();
             current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
+            printf("\n||==========================================||\n");
+            printf("||================Finalizado================||\n");
+            printf("||El proceso %d con burst %d prioridad %d      ||\n", current->id, current->burst, current->priority);
+            printf("||Ha terminado exitosamente su ejecucion    ||\n");
+            printf("||==========================================||\n");
             insertF(current);
             if (headTaskList != NULL)
             {
@@ -540,6 +599,11 @@ void *algorithmHDF(void *unused)
             current = (struct node *)getFirstRM();
             current->TAT = current->burst + current->wt;
             current->TimeOut = timeInjm;
+            printf("\n||==========================================||\n");
+            printf("||================Finalizado================||\n");
+            printf("||El proceso %d con burst %d prioridad %d      ||\n", current->id, current->burst, current->priority);
+            printf("||Ha terminado exitosamente su ejecucion    ||\n");
+            printf("||==========================================||\n");
             insertF(current);
             if (headTaskList != NULL)
             {
@@ -605,6 +669,15 @@ void *algorithmRR(void *unused)
                 timeInjm = timeInjm + quantum;
                 sleep(quantum);
                 RRpointer = RRpointer->next;
+                if (RRpointer != NULL)
+                {
+                    /* code */
+                    printf("\n||==========================================||\n");
+                    printf("||=============Cambio de proceso============||\n");
+                    printf("||El proceso %d con burst %d prioridad %d      ||\n", RRpointer->id, RRpointer->burst, RRpointer->priority);
+                    printf("||Entra en ejecucion...                     ||\n");
+                    printf("||==========================================||\n");
+                }
             }
             else
             {
@@ -632,6 +705,11 @@ void *algorithmRR(void *unused)
                 RRpointer->wt = RRpointer->TAT - RRpointer->burstBK;
 
                 RRpointer->burst = 0;
+                printf("\n||==========================================||\n");
+                printf("||================Finalizado================||\n");
+                printf("||El proceso %d con burst %d prioridad %d      ||\n", RRpointer->id, RRpointer->burst, RRpointer->priority);
+                printf("||Proceso finalizado...                     ||\n");
+                printf("||==========================================||\n");
                 sleep(RRpointer->burst);
                 clean();
             }

@@ -12,14 +12,14 @@ void *menuServer(void *unused)
     int opcion;
     int wState = 1;
     clrscr();
-    while (wState==1)
+    while (wState == 1)
     {
         printf("||==========================================||\n");
         printf("||----------------MENU-SERVER---------------||\n");
         printf("||==========================================||\n");
         printf("||-------------SELECCIONE-OPCION------------||\n");
         printf("|| 1. VER JOBTASKLIST                       ||\n");
-        printf("|| 2. DETENER SIMULACION                    ||\n");
+        printf("|| 2. VER PROCESOS TERMINADOS               ||\n");
         printf("|| 3. SALIR                                 ||\n");
         printf("|| Quantum: %d                               ||\n", getQuantum());
         printf("||==========================================||\n");
@@ -43,7 +43,8 @@ void *menuServer(void *unused)
 
         case 3:
             /* code */
-            wState = 0;
+            finalprint();
+            exit(0);
             break;
 
         default:
