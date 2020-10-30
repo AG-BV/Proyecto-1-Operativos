@@ -9,7 +9,7 @@
 #include <ctype.h>
 #define clrscr() printf("\e[1;1H\e[2J")
 
-pthread_t jobScheduler;
+// pthread_t jobScheduler;
 pthread_t CPUScheduler;
 int GlobalID = 0;
 int countBurst = 0;
@@ -453,7 +453,8 @@ void *connection_handler(void *socket_desc)
         args->priority = priorityT;
         args->burst = burstT;
 
-        pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
+        // pthread_create(&jobScheduler, NULL, &jobSchedulerTask, (void *)args);
+        jobSchedulerTask(args);
 
         jobj = makeJson(args->id);
 
@@ -782,11 +783,11 @@ int connection(int pParameter)
     {
         // puts("Connection accepted");
 
-        pthread_t sniffer_thread;
+        pthread_t jobScheduler;
         new_sock = malloc(1);
         *new_sock = client_sock;
 
-        if (pthread_create(&sniffer_thread, NULL, connection_handler, (void *)new_sock) < 0)
+        if (pthread_create(&jobScheduler, NULL, connection_handler, (void *)new_sock) < 0)
         {
             perror("could not create thread");
             return 1;
