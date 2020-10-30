@@ -92,6 +92,11 @@ int main()
 
     case 4:
         /* code */
+        printf("||==========================================||\n");
+        printf("||----------INTRODUZCA UN QUANTUM-----------||\n");
+        printf("||Opcion: ");
+        scanf("%d", &opcion);
+        setQuantum(opcion);
         pthread_create(&menuThread, NULL, &menuServer, NULL);
         connection(4);
         break;

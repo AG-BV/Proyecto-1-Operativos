@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <json-c/json.h>
 #include <ctype.h>
+#define clrscr() printf("\e[1;1H\e[2J")
 
 pthread_t jobScheduler;
 pthread_t CPUScheduler;
@@ -312,7 +313,6 @@ void finalprint()
     pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
     int play = 0;
-    
 
     pthread_cancel(CPUScheduler);
     pthread_cancel(jobScheduler);
@@ -321,6 +321,7 @@ void finalprint()
     float promTAT = 0;
     struct node *current = (struct node *)malloc(sizeof(struct node));
     current = headFinishList;
+    clrscr();
     if (current == NULL)
     {
         /* code */
@@ -390,6 +391,11 @@ void *jobSchedulerTask(void *pArgs)
 {
     struct arguments *args = (struct arguments *)pArgs;
     insert(args->id, args->priority, args->burst);
+}
+
+void setQuantum(int pQuantum)
+{
+    quantum = pQuantum;
 }
 
 int getQuantum()
@@ -635,7 +641,6 @@ void *algorithmHDF(void *unused)
 void *algorithmRR(void *unused)
 {
     timeInjm = 0;
-    randomData(10, 1);
     RRpointer = headTaskList;
     while (1)
     {
