@@ -9,7 +9,7 @@
 #include <ctype.h>
 #define clrscr() printf("\e[1;1H\e[2J")
 
-// pthread_t jobScheduler;
+pthread_t jobScheduler;
 pthread_t CPUScheduler;
 int GlobalID = 0;
 int countBurst = 0;
@@ -783,7 +783,7 @@ int connection(int pParameter)
     {
         // puts("Connection accepted");
 
-        pthread_t jobScheduler;
+        // pthread_t jobScheduler;
         new_sock = malloc(1);
         *new_sock = client_sock;
 
